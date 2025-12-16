@@ -51,8 +51,20 @@ if [[ $(_checkCommandExists "pacman") == 0 ]]; then
 # Fedora
 elif [[ $(_checkCommandExists "dnf") == 0 ]]; then
     updates=$(dnf check-update -q | grep -c ^[a-z0-9])
+# Void Linux (xbps)
+elif [[ -x "/usr/sbin/xbps-install" ]] || [[ $(_checkCommandExists "xbps-install") == 0 ]]; then
+    echo "UpdateCount: Detected xbps-install" >&2
+    echo "UpdateCount: Checking if /usr/sbin/xbps-install is executable: $([ -x /usr/sbin/xbps-install ] && echo 'yes' || echo 'no')" >&2
+    echo "UpdateCount: command -v xbps-install result: $(_checkCommandExists xbps-install)" >&2
+    updates=$(/usr/sbin/xbps-install -Mnu 2>&1 | grep -v '^$' | wc -l)
+    echo "UpdateCount: Calculated updates count: $updates" >&2
 # Others
 else
+    echo "UpdateCount: No package manager detected, falling back to 0" >&2
+    echo "UpdateCount: pacman check: $(_checkCommandExists pacman)" >&2
+    echo "UpdateCount: dnf check: $(_checkCommandExists dnf)" >&2
+    echo "UpdateCount: xbps-install check: $(_checkCommandExists xbps-install)" >&2
+    echo "UpdateCount: /usr/sbin/xbps-install exists: $([ -x /usr/sbin/xbps-install ] && echo 'yes' || echo 'no')" >&2
     updates=0
 fi
 

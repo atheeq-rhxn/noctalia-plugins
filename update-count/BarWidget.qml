@@ -22,7 +22,7 @@ Rectangle {
 
     readonly property string barPosition: Settings.data.bar.position
     readonly property bool isVertical: barPosition === "left" || barPosition === "right"
-    readonly property string updateScriptDir: pluginApi?.pluginDir + "/scripts"
+    readonly property string updateScriptDir: (pluginApi?.pluginDir || "/home/lysec/.config/noctalia/plugins/update-count") + "/scripts"
 
     implicitWidth: isVertical ? Style.capsuleHeight : layout.implicitWidth + Style.marginM * 2
     implicitHeight: isVertical ? layout.implicitHeight + Style.marginM * 2 : Style.capsuleHeight
@@ -65,17 +65,30 @@ Rectangle {
 
     Process {
         id: updateDataHandler
-        command: ["sh", "-c", root.updateScriptDir + "/update-count.sh"]
+        command: ["bash", root.updateScriptDir + "/update-count.sh"]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.count = parseInt(text.trim());
+                console.log("UpdateCount: Script path:", root.updateScriptDir + "/update-count.sh");
+                console.log("UpdateCount: Raw output:", text);
+                console.log("UpdateCount: Trimmed output:", text.trim());
+                var count = parseInt(text.trim());
+                console.log("UpdateCount: Parsed count:", count);
+                root.count = isNaN(count) ? 0 : count;
             }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                console.log("UpdateCount: stderr output:", text);
+            }
+        }
+        onExited: function(exitCode, exitStatus) {
+            console.log("UpdateCount: Process exited with code:", exitCode, "status:", exitStatus);
         }
     }
 
     Process {
         id: updateSystemHandler
-        command: ["sh", "-c", root.configuredTerminal + " " + root.updateScriptDir + "/update.sh"]
+        command: ["sh", "-c", root.configuredTerminal + " " + (pluginApi?.pluginDir || "/home/lysec/.config/noctalia/plugins/update-count") + "/scripts/update.sh"]
     }
 
     Timer {
@@ -117,11 +130,13 @@ Rectangle {
             spacing: Style.marginS
 
             NIcon {
+                Layout.alignment: Qt.AlignHCenter
                 icon: pluginApi?.pluginSettings?.configuredIcon || pluginApi?.manifest?.metadata?.defaultSettings?.configuredIcon
                 color: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mOnPrimary
             }
 
             NText {
+                Layout.alignment: Qt.AlignHCenter
                 text: root.count.toString()
                 color: Settings.data.colorSchemes.darkMode ? Color.mOnSurface : Color.mOnPrimary
                 pointSize: Style.fontSizeS

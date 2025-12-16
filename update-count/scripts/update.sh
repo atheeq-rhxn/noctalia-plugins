@@ -76,6 +76,12 @@ fi
 if [[ $(_checkCommandExists "dnf") == 0 ]]; then
     sudo dnf upgrade
     echo
+elif [[ $(_checkCommandExists "xbps-install") == 0 ]]; then
+    echo -e "${BLUE}░█▀▀░█░█░█▀▀░▀█▀░█▀▀░█▄█░░░█▀█░█▀█░█▀▀░█░█░█▀█░█▀▀░█▀▀░█▀▀
+░▀▀█░░█░░▀▀█░░█░░█▀▀░█░█░░░█▀▀░█▀█░█░░░█▀▄░█▀█░█░█░█▀▀░▀▀█
+░▀▀▀░░▀░░▀▀▀░░▀░░▀▀▀░▀░▀░░░▀░░░▀░▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀░▀▀▀\n${RESET}"
+    sudo xbps-install -Su
+    echo
 else
     echo
 fi
