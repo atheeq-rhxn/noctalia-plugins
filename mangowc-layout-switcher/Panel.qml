@@ -51,6 +51,55 @@ Item {
     }
   }
 
+  // ===== KEYBOARD NAVIGATION =====
+
+  // Tab: Cycle forward
+  function onTabPressed() { cycleLayout(1) }
+  // Backtab: Cycle backward
+  function onBackTabPressed() { cycleLayout(-1) }
+
+  // Arrows
+  function onLeftPressed() { cycleLayout(-1) }
+  function onRightPressed() { cycleLayout(1) }
+  function onUpPressed() { cycleLayout(-3) }   // Grid has 3 columns
+  function onDownPressed() { cycleLayout(3) }
+
+  // Vim Bindings
+  function onHPressed() { cycleLayout(-1) } // Left
+  function onLPressed() { cycleLayout(1) }  // Right
+  function onKPressed() { cycleLayout(-3) } // Up
+  function onJPressed() { cycleLayout(3) }  // Down
+
+  function cycleLayout(step) {
+    if (!root.layouts || root.layouts.length === 0) return
+    if (!pluginApi || !pluginApi.mainInstance) return
+
+    var currentIndex = -1
+    for (var i = 0; i < root.layouts.length; i++) {
+      if (root.layouts[i].code === root.activeLayout) {
+        currentIndex = i
+        break
+      }
+    }
+
+    var nextIndex = currentIndex + step
+    
+    // Boundary checks with wrapping
+    if (nextIndex >= root.layouts.length) nextIndex = nextIndex % root.layouts.length
+    if (nextIndex < 0) nextIndex = root.layouts.length + (nextIndex % root.layouts.length)
+    if (nextIndex === root.layouts.length) nextIndex = 0 // Handle exact boundary
+
+    var nextLayout = root.layouts[nextIndex]
+    
+    if (nextLayout) {
+      if (root.applyToAll) {
+        pluginApi.mainInstance.setLayoutGlobally(nextLayout.code)
+      } else {
+        pluginApi.mainInstance.setLayout(root.panelMonitor, nextLayout.code)
+      }
+    }
+  }
+
   // ===== UI =====
 
   MouseArea {
