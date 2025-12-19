@@ -6,6 +6,8 @@ import qs.Widgets
 ColumnLayout {
     id: root
 
+    readonly property var iconNames: ["arrow", "arrow-bar", "arrow-big", "arrow-narrow", "caret", "chevron", "chevron-compact", "fold"]
+
     property var pluginApi: null
 
     property var cfg: pluginApi?.pluginSettings || ({})
@@ -14,14 +16,15 @@ ColumnLayout {
     property string arrowType: cfg.arrowType || defaults.arrowType
     property int minWidth: cfg.minWidth || defaults.minWidth
 
-    property bool useCustomColors: cfg.useCustomColors || defaults.useCustomColors
-    property bool showNumbers: cfg.showNumbers || defaults.showNumbers
-    property bool forceMegabytes: cfg.forceMegabytes || defaults.forceMegabytes
+    property bool useCustomColors: cfg.useCustomColors ?? defaults.useCustomColors
+    property bool showNumbers: cfg.showNumbers ?? defaults.showNumbers
+    property bool forceMegabytes: cfg.forceMegabytes ?? defaults.forceMegabytes
 
-    property color colorSilent: root.useCustomColors && (cfg.colorSilent || defaults.colorSilent) || Color.mSurfaceVariant
-    property color colorTx: cfg.colorTx || defaults.colorTx || Color.mSecondary
-    property color colorRx: cfg.colorRx || defaults.colorRx || Color.mPrimary
-    property color colorText: cfg.colorText || defaults.colorText || Qt.alpha(Color.mOnSurfaceVariant, 0.3)
+    property color colorSilent: root.useCustomColors && cfg.colorSilent || Color.mSurfaceVariant
+    property color colorTx: root.useCustomColors && cfg.colorTx || Color.mSecondary
+    property color colorRx: root.useCustomColors && cfg.colorRx || Color.mPrimary
+    property color colorText: root.useCustomColors && cfg.colorText || Qt.alpha(Color.mOnSurfaceVariant, 0.3)
+    property color colorBackground: root.useCustomColors && cfg.colorBackground || Style.capsuleColor
 
     property int byteThresholdActive: cfg.byteThresholdActive || defaults.byteThresholdActive
     property real fontSizeModifier: cfg.fontSizeModifier || defaults.fontSizeModifier
@@ -48,82 +51,72 @@ ColumnLayout {
 
     RowLayout {
         NComboBox {
-            label: "Icon Type"
-            description: "Choose the icon style used for the TX/RX indicators."
+            label: pluginApi?.tr("settings.iconType.label")
+            description: pluginApi?.tr("settings.iconType.desc")
 
-            model: [
-                {
-                    "key": "arrow",
-                    "name": "arrow"
-                },
-                {
-                    "key": "arrow-narrow",
-                    "name": "arrow-narrow"
-                },
-                {
-                    "key": "caret",
-                    "name": "caret"
-                },
-                {
-                    "key": "chevron",
-                    "name": "chevron"
-                },
-            ]
+            model: root.iconNames.map(function (n) {
+                return {
+                    key: n,
+                    name: n
+                };
+            })
 
             currentKey: root.arrowType
             onSelected: key => root.arrowType = key
         }
 
-        NIcon {
-            icon: root.arrowType + "-up"
-            color: Color.mPrimary
-            pointSize: Style.fontSizeL * 2
+        ColumnLayout {
+            spacing: -10.0 + root.spacingInbetween
+
+            NIcon {
+                icon: arrowType + "-up"
+                color: Color.mSecondary
+                pointSize: Style.fontSizeL * root.iconSizeModifier
+            }
+
+            NIcon {
+                icon: arrowType + "-down"
+                color: Color.mPrimary
+                pointSize: Style.fontSizeL * root.iconSizeModifier
+            }
         }
     }
 
     NTextInput {
-        label: "Minimum Widget Width"
-        description: "Set a minimum width for the widget (in px)."
+        label: pluginApi?.tr("settings.minWidth.label")
+        description: pluginApi?.tr("settings.minWidth.desc")
         placeholderText: String(root.minWidth)
         text: String(root.minWidth)
         onTextChanged: root.minWidth = root.toIntOr(0, text)
     }
 
     NTextInput {
-        label: "Show Active Threshold"
-        description: "Set the activity threshold in bytes per second (B/s)."
+        label: pluginApi?.tr("settings.byteThresholdActive.label")
+        description: pluginApi?.tr("settings.byteThresholdActive.desc")
         placeholderText: root.byteThresholdActive + " bytes"
         text: String(root.byteThresholdActive)
         onTextChanged: root.byteThresholdActive = root.toIntOr(0, text)
     }
 
     NToggle {
-        label: "Show Values"
-        description: "Display the current RX/TX speeds as numbers."
+        label: pluginApi?.tr("settings.showNumbers.label")
+        description: pluginApi?.tr("settings.showNumbers.desc")
         visible: barIsSpacious && !barIsVertical
 
         checked: root.showNumbers
         onToggled: function (checked) {
-            if (checked) {
-                root.showNumbers = true;
-            } else {
-                root.showNumbers = false;
-            }
+            root.showNumbers = checked;
         }
     }
 
     NToggle {
-        label: "Force megabytes (MB)"
-        description: "Show all traffic values in MB instead of switching to KB for low usage."
+        label: pluginApi?.tr("settings.forceMegabytes.label")
+        description: pluginApi?.tr("settings.forceMegabytes.desc")
         visible: barIsSpacious && !barIsVertical
 
         checked: root.forceMegabytes
         onToggled: function (checked) {
-            if (checked) {
-                root.forceMegabytes = true;
-            } else {
-                root.forceMegabytes = false;
-            }
+            root.forceMegabytes = checked;
         }
     }
 
@@ -141,8 +134,8 @@ ColumnLayout {
         Layout.fillWidth: true
 
         NLabel {
-            label: "Vertical Spacing"
-            description: "Adjust the spacing between RX/TX elements."
+            label: pluginApi?.tr("settings.spacingInbetween.label")
+            description: pluginApi?.tr("settings.spacingInbetween.desc")
         }
 
         NValueSlider {
@@ -161,8 +154,8 @@ ColumnLayout {
         Layout.fillWidth: true
 
         NLabel {
-            label: "Font Size Modifier"
-            description: "Scale the text size relative to the default."
+            label: pluginApi?.tr("settings.fontSizeModifier.label")
+            description: pluginApi?.tr("settings.fontSizeModifier.desc")
         }
 
         NValueSlider {
@@ -181,8 +174,8 @@ ColumnLayout {
         Layout.fillWidth: true
 
         NLabel {
-            label: "Icon Size Modifier"
-            description: "Scale the icon size relative to the default."
+            label: pluginApi?.tr("settings.iconSizeModifier.label")
+            description: pluginApi?.tr("settings.iconSizeModifier.desc")
         }
 
         NValueSlider {
@@ -206,15 +199,11 @@ ColumnLayout {
     // ---------- Colors ----------
 
     NToggle {
-        label: "Custom Colors"
-        description: "Enable custom colors instead of theme defaults."
+        label: pluginApi?.tr("settings.useCustomColors.label")
+        description: pluginApi?.tr("settings.useCustomColors.desc")
         checked: root.useCustomColors
         onToggled: function (checked) {
-            if (checked) {
-                root.useCustomColors = true;
-            } else {
-                root.useCustomColors = false;
-            }
+            root.useCustomColors = checked;
         }
     }
 
@@ -223,8 +212,8 @@ ColumnLayout {
 
         RowLayout {
             NLabel {
-                label: "TX Active"
-                description: "Set the upload (TX) icon color when above the threshold."
+                label: pluginApi?.tr("settings.colorTx.label")
+                description: pluginApi?.tr("settings.colorTx.desc")
                 Layout.alignment: Qt.AlignTop
             }
 
@@ -236,8 +225,8 @@ ColumnLayout {
 
         RowLayout {
             NLabel {
-                label: "RX Active"
-                description: "Set the download (RX) icon color when above the threshold."
+                label: pluginApi?.tr("settings.colorRx.label")
+                description: pluginApi?.tr("settings.colorRx.desc")
             }
 
             NColorPicker {
@@ -248,8 +237,8 @@ ColumnLayout {
 
         RowLayout {
             NLabel {
-                label: "RX/TX Inactive"
-                description: "Set the icon color when traffic is below the threshold."
+                label: pluginApi?.tr("settings.colorSilent.label")
+                description: pluginApi?.tr("settings.colorSilent.desc")
             }
 
             NColorPicker {
@@ -260,13 +249,25 @@ ColumnLayout {
 
         RowLayout {
             NLabel {
-                label: "Text"
-                description: "Set the text color used for both RX and TX values."
+                label: pluginApi?.tr("settings.colorText.label")
+                description: pluginApi?.tr("settings.colorText.desc")
             }
 
             NColorPicker {
                 selectedColor: root.colorText
                 onColorSelected: color => root.colorText = color
+            }
+        }
+
+        RowLayout {
+            NLabel {
+                label: pluginApi?.tr("settings.colorBackground.label")
+                description: pluginApi?.tr("settings.colorBackground.desc")
+            }
+
+            NColorPicker {
+                selectedColor: root.colorBackground
+                onColorSelected: color => root.colorBackground = color
             }
         }
     }
@@ -290,10 +291,13 @@ ColumnLayout {
         pluginApi.pluginSettings.iconSizeModifier = root.iconSizeModifier;
         pluginApi.pluginSettings.spacingInbetween = root.spacingInbetween;
 
-        pluginApi.pluginSettings.colorSilent = root.colorSilent.toString();
-        pluginApi.pluginSettings.colorTx = root.colorTx.toString();
-        pluginApi.pluginSettings.colorRx = root.colorRx.toString();
-        pluginApi.pluginSettings.colorText = root.colorText.toString();
+        if (root.useCustomColors) {
+            pluginApi.pluginSettings.colorSilent = root.colorSilent.toString();
+            pluginApi.pluginSettings.colorTx = root.colorTx.toString();
+            pluginApi.pluginSettings.colorRx = root.colorRx.toString();
+            pluginApi.pluginSettings.colorText = root.colorText.toString();
+            pluginApi.pluginSettings.colorBackground = root.colorBackground.toString();
+        }
 
         pluginApi.saveSettings();
 

@@ -4,24 +4,24 @@
     {
       "id": "catwalk",
       "name": "Catwalk",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "author": "MannuVilasara",
       "description": "A cute animated cat for your bar.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-13T18:14:22+05:30"
+      "lastUpdated": "2025-12-18T17:50:30+05:30"
     },
     {
       "id": "hello-world",
       "name": "Hello World",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "Noctalia Team <team@noctalia.dev>",
       "description": "A simple Hello World plugin demonstrating functionalities.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-14T15:59:10-05:00"
+      "lastUpdated": "2025-12-16T09:20:24-05:00"
     },
     {
       "id": "launcher-button",
@@ -35,37 +35,70 @@
       "lastUpdated": "2025-12-07T16:04:14+01:00"
     },
     {
-      "id": "mini-docker",
-      "name": "Mini Docker",
-      "version": "1.0.0",
-      "author": "MannuVilasara",
-      "description": "Manage Docker containers, volumes.",
+      "id": "mangowc-layout-switcher",
+      "name": "Mangowc Layout Switcher",
+      "version": "1.1.0",
+      "author": "atheeq-rhxn",
+      "description": "Switch between different mangowc layouts",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-13T18:44:49+05:30"
+      "lastUpdated": "2025-12-16T15:47:15+05:30"
+    },
+    {
+      "id": "mini-docker",
+      "name": "Mini Docker",
+      "version": "2.1.0",
+      "author": "MannuVilasara",
+      "description": "Manage Docker containers, images, volumes & networks",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "3.6.0",
+      "license": "MIT",
+      "lastUpdated": "2025-12-17T22:22:38+05:30"
     },
     {
       "id": "network-indicator",
       "name": "NetworkIndicator",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "tonigineer",
       "description": "A `lively` network traffic indicator.",
-      "repository": "https://github.com/tonigineer/noctalia-plugins",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.2",
       "license": "MIT",
-      "lastUpdated": "2025-12-12T20:44:42+01:00"
+      "lastUpdated": "2025-12-15T13:05:46-05:00"
     },
     {
       "id": "privacy-indicator",
       "name": "Privacy Indicator",
-      "version": "1.0.8",
+      "version": "1.0.10",
       "author": "Noctalia Team <team@noctalia.dev>",
       "description": "A privacy indicator widget that shows when microphone, camera or screen sharing is active.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-09T13:33:20+01:00"
+      "lastUpdated": "2025-12-17T16:37:25+01:00"
+    },
+    {
+      "id": "update-count",
+      "name": "Update Count",
+      "version": "1.0.4",
+      "author": "BukoMoon",
+      "description": "Requires: gum. Periodically scans for new updates and displays them. Clicking the widget will open a terminal script to update your packages.",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "3.6.0",
+      "license": "GPLv3",
+      "lastUpdated": "2025-12-16T10:12:55-05:00"
+    },
+    {
+      "id": "virtual-keyboard",
+      "name": "Virtual Keyboard",
+      "version": "1.0.0",
+      "author": "Adrien Piechocki",
+      "description": "A Virtual Keyboard plugin made for accessibility.",
+      "repository": "https://github.com/AdrienPiechocki/noctalia-virtual-keyboard-plugin",
+      "minNoctaliaVersion": "3.6.0",
+      "license": "MIT",
+      "lastUpdated": "2025-12-12T12:12:32+01:00"
     }
   ]
 }

@@ -1,12 +1,8 @@
 {
-  "intervals": {
-    "10_seconds": "10 seconds",
-    "1_second": "1 second",
-    "30_seconds": "30 seconds",
-    "5_seconds": "5 seconds"
-  },
   "settings": {
     "current_value": "Selected: {value} ms",
+    "default_network_description": "Default network to use when running images",
+    "default_network_label": "Default Network",
     "general": "General",
     "refresh_interval_description": "How often the plugin checks for container status changes",
     "refresh_interval_label": "Refresh Interval",
@@ -14,15 +10,7 @@
   },
   "tooltip": {
     "docker_not_available": "Docker not available",
+    "image_already_running": "Image already running in a container",
     "running_containers": "Running containers: %1"
-  },
-  "ui": {
-    "containers": "Containers",
-    "prune": "Prune",
-    "refresh": "Refresh",
-    "remove": "Remove",
-    "start": "Start",
-    "stop": "Stop",
-    "volumes": "Volumes"
   }
 }

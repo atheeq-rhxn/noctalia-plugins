@@ -9,19 +9,9 @@ import qs.Services.UI
 import qs.Widgets
 
 Rectangle {
-    // Text {
-    //     anchors.centerIn: parent
-    //     visible: dockerAvailable && runningCount > 0
-    //     text: runningCount.toString()
-    //     color: hovering ? colorFgHover : colorFg
-    //     font.pixelSize: Math.min(parent.width, parent.height) * 0.45
-    //     font.bold: true
-    // }
-
     id: root
 
     property var pluginApi: null
-    // Required properties for bar widgets
     property ShellScreen screen
     property string widgetId: ""
     property string section: ""
@@ -74,7 +64,7 @@ Rectangle {
     }
 
     Timer {
-        interval: (pluginApi && pluginApi.pluginSettings) ? pluginApi.pluginSettings.refreshInterval : 5000
+        interval: (pluginApi && pluginApi.pluginSettings && pluginApi.pluginSettings.refreshInterval) || 5000
         running: true
         repeat: true
         onTriggered: {
@@ -105,7 +95,6 @@ Rectangle {
         color: dockerAvailable ? (hovering ? colorFgHover : colorFg) : Color.mOnSurfaceVariant
     }
 
-    // Status Indicator Dot
     Rectangle {
         z: 1
         anchors.top: parent.top

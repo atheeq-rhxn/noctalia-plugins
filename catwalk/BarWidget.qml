@@ -60,33 +60,19 @@ Rectangle {
     property string section: ""
 
     property int frameIndex: 0
-    property bool isRunning: true
-    
-    // Detect Light Mode (Dark Text = Light Mode)
-    readonly property bool isLightMode: (Color.mOnSurface.r * 0.299 + Color.mOnSurface.g * 0.587 + Color.mOnSurface.b * 0.114) < 0.5
-    readonly property string iconPrefix: isLightMode ? "icons/black/" : "icons/"
 
-    readonly property var icons: [
-        root.iconPrefix + "my-active-0-symbolic.svg",
-        root.iconPrefix + "my-active-1-symbolic.svg",
-        root.iconPrefix + "my-active-2-symbolic.svg",
-        root.iconPrefix + "my-active-3-symbolic.svg",
-        root.iconPrefix + "my-active-4-symbolic.svg"
-    ]
+    readonly property bool isRunning: root.pluginApi?.mainInstance?.isRunning ?? false
+    
+    readonly property var icons: root.pluginApi?.mainInstance?.icons || []
     
     property int idleFrameIndex: 0
-    readonly property var idleIcons: [
-        root.iconPrefix + "my-idle-0-symbolic.svg",
-        root.iconPrefix + "my-idle-1-symbolic.svg",
-        root.iconPrefix + "my-idle-2-symbolic.svg",
-        root.iconPrefix + "my-idle-3-symbolic.svg"
-    ]
+    readonly property var idleIcons: root.pluginApi?.mainInstance?.idleIcons || []
 
-    property real cpuUsage: SystemStatService.cpuUsage
+    readonly property real cpuUsage: root.pluginApi?.mainInstance?.cpuUsage ?? 0
 
     Timer {
         interval: Math.max(30, 200 - root.cpuUsage * 1.7)
-        running: root.isRunning && root.cpuUsage >= (pluginApi?.pluginSettings?.minimumThreshold || 10)
+        running: root.isRunning
         repeat: true
         onTriggered: {
             root.frameIndex = (root.frameIndex + 1) % root.icons.length
@@ -95,30 +81,30 @@ Rectangle {
     
     Timer {
         interval: 400
-        running: root.isRunning && root.cpuUsage < (pluginApi?.pluginSettings?.minimumThreshold || 10)
+        running: !root.isRunning
         repeat: true
         onTriggered: {
             root.idleFrameIndex = (root.idleFrameIndex + 1) % root.idleIcons.length
         }
     }
 
-    currentIconSource: (root.isRunning && root.cpuUsage >= (pluginApi?.pluginSettings?.minimumThreshold || 10)) 
-                       ? Qt.resolvedUrl(root.icons[root.frameIndex]) 
-                       : Qt.resolvedUrl(root.idleIcons[root.idleFrameIndex])
+    currentIconSource: (root.icons && root.icons.length > 0 && root.idleIcons && root.idleIcons.length > 0)
+                       ? (root.isRunning
+                           ? Qt.resolvedUrl(root.icons[root.frameIndex % root.icons.length])
+                           : Qt.resolvedUrl(root.idleIcons[root.idleFrameIndex % root.idleIcons.length]))
+                       : ""
 
     tooltipText: {
         if (!pluginApi) return "No API";
-        var threshold = pluginApi?.pluginSettings?.minimumThreshold || 10;
-        var actuallyRunning = root.isRunning && root.cpuUsage >= threshold;
-        return actuallyRunning ? (pluginApi.tr("tooltip.running") || "Running") : (pluginApi.tr("tooltip.sleeping") || "Sleeping");
+        return root.isRunning ? (pluginApi.tr("tooltip.running") || "Running") : (pluginApi.tr("tooltip.sleeping") || "Sleeping");
     }
     
     Image {
         id: iconImage
         source: root.currentIconSource
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: -3 // Padding on right
-        anchors.verticalCenterOffset: -1   // Padding on bottom
+        anchors.horizontalCenterOffset: -3
+        anchors.verticalCenterOffset: -1
         
         width: {
             switch (root.density) {
@@ -130,10 +116,17 @@ Rectangle {
         }
         height: width
         
+        // Ensures the SVG renders sharply at any size
         fillMode: Image.PreserveAspectFit
         smooth: true
-        mipmap: true
-        visible: true
+        mipmap: true 
+
+        // This enables the "mask" behavior to recolor the icon
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: Settings.data.colorSchemes.darkMode ? "white" : "black"
+        }
     }
     
 
