@@ -13,15 +13,26 @@
       "lastUpdated": "2025-12-18T17:50:30+05:30"
     },
     {
+      "id": "fancy-audiovisualizer",
+      "name": "Fancy Audiovisualizer",
+      "version": "1.0.2",
+      "author": "Noctalia Team",
+      "description": "Fancy circular audio visualizer with reactive rings, inspired by GLava NCS",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "3.7.2",
+      "license": "MIT",
+      "lastUpdated": "2025-12-21T22:46:29-05:00"
+    },
+    {
       "id": "hello-world",
       "name": "Hello World",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "Noctalia Team <team@noctalia.dev>",
       "description": "A simple Hello World plugin demonstrating functionalities.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-16T09:20:24-05:00"
+      "lastUpdated": "2025-12-21T22:07:55+01:00"
     },
     {
       "id": "launcher-button",
@@ -79,15 +90,26 @@
       "lastUpdated": "2025-12-17T16:37:25+01:00"
     },
     {
+      "id": "todo",
+      "name": "Todo Plugin",
+      "version": "1.2.0",
+      "author": "lonerOrz <lonerOrz@qq.com>",
+      "description": "A simple todo list manager plugin for Noctalia Shell.",
+      "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+      "minNoctaliaVersion": "3.7.1",
+      "license": "MIT",
+      "lastUpdated": "2025-12-21T16:30:46+08:00"
+    },
+    {
       "id": "update-count",
       "name": "Update Count",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": "BukoMoon",
-      "description": "Requires: gum. Periodically scans for new updates and displays them. Clicking the widget will open a terminal script to update your packages.",
+      "description": "Checks for system updates and shows the update count. Click to run update command in a terminal.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "GPLv3",
-      "lastUpdated": "2025-12-16T10:12:55-05:00"
+      "lastUpdated": "2025-12-19T10:19:39+01:00"
     },
     {
       "id": "virtual-keyboard",

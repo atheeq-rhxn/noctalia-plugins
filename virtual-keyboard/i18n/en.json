@@ -1,27 +1,27 @@
 {
-  "tooltip": {
-    "toggle-button": "Toggle Virtual Keyboard"
-  },
-  "settings": {
-    "layout": {
-      "label": "Virtual Keyboard layout",
-      "description": "Change the keyboard layout"
-    },
-    "size": {
-      "label": "Virtual Keyboard size",
-      "description": "Change the keyboard size"
-    }
-  },
   "options": {
     "layout": {
       "auto": "auto (QWERTY)",
-      "qwerty": "QWERTY",
       "azerty": "AZERTY",
-      "dvorak": "DVORAK"
+      "dvorak": "DVORAK",
+      "qwerty": "QWERTY"
     },
     "size": {
       "compact": "compact",
       "full": "full"
     }
+  },
+  "settings": {
+    "layout": {
+      "description": "Change the keyboard layout",
+      "label": "Virtual Keyboard layout"
+    },
+    "size": {
+      "description": "Change the keyboard size",
+      "label": "Virtual Keyboard size"
+    }
+  },
+  "tooltip": {
+    "toggle-button": "Toggle Virtual Keyboard"
   }
 }
