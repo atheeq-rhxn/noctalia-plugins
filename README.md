@@ -81,7 +81,17 @@ See [.github/workflows/README.md](.github/workflows/README.md) for technical det
 
 ## Available Plugins
 
-Check [registry.json](registry.json) for the complete list of available plugins.
+Check [registry.json](registry.json) or the [plugin overview](https://noctalia.dev/plugins/) on the Noctalia homepage for the complete list of available plugins.
+
+## Custom Repositories
+
+In addition to the official plugin registry, Noctalia Shell supports loading plugins from custom repositories.
+
+This allows the community to share and use plugins outside the official registry.
+
+| Repository        | Link                                                                     |
+|-------------------|--------------------------------------------------------------------------|
+| ThatOneCalculator | [GitHub](https://github.com/ThatOneCalculator/personal-noctalia-plugins) |
 
 ## Development
 

@@ -4,24 +4,24 @@
     {
       "id": "catwalk",
       "name": "Catwalk",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": "MannuVilasara",
       "description": "A cute animated cat for your bar.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
-      "lastUpdated": "2025-12-18T17:50:30+05:30"
+      "lastUpdated": "2025-12-30T10:46:21-08:00"
     },
     {
       "id": "fancy-audiovisualizer",
       "name": "Fancy Audiovisualizer",
-      "version": "1.0.2",
+      "version": "1.0.7",
       "author": "Noctalia Team",
-      "description": "Fancy circular audio visualizer with reactive rings, inspired by GLava NCS",
+      "description": "Lemmy's fancy circular audio visualizer.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.7.2",
       "license": "MIT",
-      "lastUpdated": "2025-12-21T22:46:29-05:00"
+      "lastUpdated": "2026-01-02T19:48:38-05:00"
     },
     {
       "id": "hello-world",
@@ -70,13 +70,24 @@
     {
       "id": "network-indicator",
       "name": "NetworkIndicator",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "tonigineer",
       "description": "A `lively` network traffic indicator.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
-      "minNoctaliaVersion": "3.6.2",
+      "minNoctaliaVersion": "3.7.5",
       "license": "MIT",
-      "lastUpdated": "2025-12-15T13:05:46-05:00"
+      "lastUpdated": "2025-12-26T23:47:22+01:00"
+    },
+    {
+      "id": "noctalia-supergfxctl",
+      "name": "SuperGFX Control",
+      "version": "0.0.1",
+      "author": "cod3d <cod3ddot@proton.me>",
+      "description": "GPU control with supergfxctl for noctalia.",
+      "repository": "https://github.com/cod3ddot/noctalia-supergfxctl",
+      "minNoctaliaVersion": "3.7.5",
+      "license": "AGPL-3.0-or-later",
+      "lastUpdated": "2025-12-28T14:49:30-08:00"
     },
     {
       "id": "privacy-indicator",
@@ -90,37 +101,37 @@
       "lastUpdated": "2025-12-17T16:37:25+01:00"
     },
     {
+      "id": "simple-notes",
+      "name": "Simple Notes",
+      "version": "1.0.0",
+      "author": "fusuyfusuy",
+      "description": "A simple note taking plugin for Noctalia Shell.",
+      "repository": "",
+      "minNoctaliaVersion": "3.7.1",
+      "license": "MIT",
+      "lastUpdated": "2025-12-29T15:32:27+03:00"
+    },
+    {
       "id": "todo",
-      "name": "Todo Plugin",
-      "version": "1.2.0",
+      "name": "Todo List",
+      "version": "1.4.0",
       "author": "lonerOrz <lonerOrz@qq.com>",
       "description": "A simple todo list manager plugin for Noctalia Shell.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.7.1",
       "license": "MIT",
-      "lastUpdated": "2025-12-21T16:30:46+08:00"
+      "lastUpdated": "2026-01-03T15:38:36+08:00"
     },
     {
       "id": "update-count",
       "name": "Update Count",
-      "version": "1.0.5",
+      "version": "1.0.7",
       "author": "BukoMoon",
       "description": "Checks for system updates and shows the update count. Click to run update command in a terminal.",
       "repository": "https://github.com/noctalia-dev/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "GPLv3",
-      "lastUpdated": "2025-12-19T10:19:39+01:00"
-    },
-    {
-      "id": "virtual-keyboard",
-      "name": "Virtual Keyboard",
-      "version": "1.0.0",
-      "author": "Adrien Piechocki",
-      "description": "A Virtual Keyboard plugin made for accessibility.",
-      "repository": "https://github.com/AdrienPiechocki/noctalia-virtual-keyboard-plugin",
-      "minNoctaliaVersion": "3.6.0",
-      "license": "MIT",
-      "lastUpdated": "2025-12-12T12:12:32+01:00"
+      "lastUpdated": "2025-12-29T20:43:28-05:00"
     }
   ]
 }
