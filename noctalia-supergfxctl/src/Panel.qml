@@ -101,7 +101,7 @@ Item {
             }
 
             if (_hovered) {
-                return Color.transparent;
+                return "transparent";
             }
 
             if (_current) {
@@ -113,7 +113,7 @@ Item {
             }
 
             // non-current default
-            return Color.transparent;
+            return "transparent";
         }
 
         readonly property color borderColor: {
@@ -261,7 +261,7 @@ Item {
     Rectangle {
         id: panelContainer
         anchors.fill: parent
-        color: Color.transparent
+        color: "transparent"
 
         ColumnLayout {
             anchors.fill: parent

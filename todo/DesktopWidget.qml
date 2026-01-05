@@ -15,9 +15,9 @@ DraggableDesktopWidget {
 
   showBackground: (pluginApi && pluginApi.pluginSettings ? (pluginApi.pluginSettings.showBackground !== undefined ? pluginApi.pluginSettings.showBackground : pluginApi?.manifest?.metadata?.defaultSettings?.showBackground) : pluginApi?.manifest?.metadata?.defaultSettings?.showBackground)
 
-  readonly property color todoBg: showBackground ? Qt.rgba(0, 0, 0, 0.2) : Color.transparent
-  readonly property color itemBg: showBackground ? Color.mSurface : Color.transparent
-  readonly property color completedItemBg: showBackground ? Color.mSurfaceVariant : Color.transparent
+  readonly property color todoBg: showBackground ? Qt.rgba(0, 0, 0, 0.2) : "transparent"
+  readonly property color itemBg: showBackground ? Color.mSurface : "transparent"
+  readonly property color completedItemBg: showBackground ? Color.mSurfaceVariant : "transparent"
 
   // Scaled dimensions
   readonly property int scaledMarginM: Math.round(Style.marginM * widgetScale)
@@ -162,7 +162,7 @@ DraggableDesktopWidget {
         anchors.fill: parent
         color: root.todoBg
         radius: scaledRadiusM
-        border.color: showBackground ? Color.mOutline : Color.transparent
+        border.color: showBackground ? Color.mOutline : "transparent"
         border.width: showBackground ? 1 : 0
       }
 
