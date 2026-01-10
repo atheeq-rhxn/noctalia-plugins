@@ -27,16 +27,19 @@ Control the todo list from external scripts using Quickshell IPC:
 
 ```bash
 # Add a new todo
-qs ipc call plugin:todo addTodo "Buy groceries"
+qs -c noctalia-shell ipc call plugin:todo addTodo "Buy groceries"
 
 # Toggle a todo's completion status (by ID)
-qs ipc call plugin:todo toggleTodo 1234567890
+qs -c noctalia-shell ipc call plugin:todo toggleTodo 1234567890
 
 # Remove a specific todo (by ID)
-qs ipc call plugin:todo removeTodo 1234567890
+qs -c noctalia-shell ipc call plugin:todo removeTodo 1234567890
 
 # Clear all completed todos
-qs ipc call plugin:todo clearCompleted
+qs -c noctalia-shell ipc call plugin:todo clearCompleted
+
+# Toggle the panel
+qs -c noctalia-shell ipc call plugin:todo togglePanel
 ```
 
 ## Configuration
