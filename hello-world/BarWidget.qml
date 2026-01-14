@@ -43,7 +43,7 @@ Rectangle {
       visible: !barIsVertical
       text: root.message
       color: Color.mOnPrimary
-      pointSize: Style.fontSizeS
+      pointSize: Style.barFontSize
       font.weight: Font.Medium
     }
   }

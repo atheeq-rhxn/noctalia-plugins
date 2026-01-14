@@ -1,5 +1,3 @@
-[![noctalia-supergfxctl](./preview.png)](https://github.com/cod3ddot/noctalia-supergfxctl)
-
 # noctalia-supergfxctl
 
 Minimum noctalia version: `3.8.2`

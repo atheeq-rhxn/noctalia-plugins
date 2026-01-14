@@ -13,6 +13,10 @@ Rectangle {
   property ShellScreen screen
   property string widgetId: ""
   property string section: ""
+  property int sectionWidgetIndex: -1
+  property int sectionWidgetsCount: 0
+
+  readonly property bool pillDirection: BarService.getPillDirection(root)
 
   readonly property var mainInstance: pluginApi?.mainInstance
   readonly property bool isActive: mainInstance && (mainInstance.timerRunning || mainInstance.timerElapsedSeconds > 0 || mainInstance.timerRemainingSeconds > 0)
@@ -46,7 +50,8 @@ Rectangle {
     id: contentRow
     anchors.centerIn: parent
     spacing: Style.marginS
-    
+    layoutDirection: pillDirection ? Qt.LeftToRight : Qt.RightToLeft 
+
     NIcon {
       icon: {
         if (mainInstance && mainInstance.timerSoundPlaying) return "bell-ringing"
@@ -64,6 +69,8 @@ Rectangle {
     
     NText {
       visible: !barIsVertical && mainInstance && (mainInstance.timerRunning || mainInstance.timerElapsedSeconds > 0 || mainInstance.timerRemainingSeconds > 0)
+      family: Settings.data.ui.fontFixed
+      pointSize: Style.barFontSize
       text: {
         if (!mainInstance) return ""
         if (mainInstance.timerStopwatchMode) {
@@ -77,8 +84,6 @@ Rectangle {
          }
          return mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
       }
-      pointSize: Style.fontSizeS
-      font.weight: Font.Medium
     }
   }
   

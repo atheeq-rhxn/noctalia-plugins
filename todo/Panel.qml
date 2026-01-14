@@ -25,6 +25,48 @@ Item {
     value: pluginApi?.pluginSettings?.todos || []
   }
 
+  function moveTodoToCorrectPosition(todoId) {
+    if (!pluginApi) return;
+
+    var todos = pluginApi.pluginSettings.todos || [];
+    var todoIndex = -1;
+
+    for (var i = 0; i < todos.length; i++) {
+      if (todos[i].id === todoId) {
+        todoIndex = i;
+        break;
+      }
+    }
+
+    if (todoIndex !== -1) {
+      var movedTodo = todos[todoIndex];
+
+      todos.splice(todoIndex, 1);
+
+      if (movedTodo.completed) {
+        var insertIndex = todos.length;
+        for (var j = todos.length - 1; j >= 0; j--) {
+          if (todos[j].completed) {
+            insertIndex = j + 1;
+            break;
+          }
+        }
+        todos.splice(insertIndex, 0, movedTodo);
+      } else {
+        var insertIndex = 0;
+        for (; insertIndex < todos.length; insertIndex++) {
+          if (todos[insertIndex].completed) {
+            break;
+          }
+        }
+        todos.splice(insertIndex, 0, movedTodo);
+      }
+
+      pluginApi.pluginSettings.todos = todos;
+      pluginApi.saveSettings();
+    }
+  }
+
   Component.onCompleted: {
     if (pluginApi) {
       Logger.i("Todo", "Panel initialized");
@@ -36,6 +78,9 @@ Item {
   }
 
   function loadTodos() {
+    // Store the current scroll position
+    var currentScrollPos = todoListView ? todoListView.contentY : 0;
+
     todosModel.clear();
     filteredTodosModel.clear();
 
@@ -59,6 +104,13 @@ Item {
                                     createdAt: pluginTodos[k].createdAt
                                   });
       }
+    }
+
+    // Restore the scroll position
+    if (todoListView) {
+      Qt.callLater(function() {
+        todoListView.contentY = currentScrollPos;
+      });
     }
   }
 
@@ -119,7 +171,7 @@ Item {
 
             NIcon {
               icon: "checklist"
-              pointSize: Style.fontSizeL
+              pointSize: Style.fontSizeXL
             }
 
             NText {
@@ -134,605 +186,684 @@ Item {
             }
 
             NButton {
+              enabled: (pluginApi.pluginSettings.completedCount > 0)
               text: pluginApi?.tr("panel.header.clear_completed_button")
+              icon: "trash"
+              fontSize: Style.fontSizeS
               onClicked: {
                 if (pluginApi) {
                   var todos = pluginApi.pluginSettings.todos || [];
-
                   var activeTodos = todos.filter(todo => !todo.completed);
-
                   pluginApi.pluginSettings.todos = activeTodos;
-
                   pluginApi.pluginSettings.count = activeTodos.length;
                   pluginApi.pluginSettings.completedCount = 0;
-
                   pluginApi.saveSettings();
-
                   loadTodos();
                 }
               }
             }
           }
 
-          Rectangle {
+          ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: Color.mSurfaceVariant
-            radius: Style.radiusM
-            border.color: Color.mOutline
-            border.width: 1
 
-            ColumnLayout {
-              anchors {
-                fill: parent
-                margins: Style.marginM
-              }
-              spacing: Style.marginM
+            RowLayout {
+              spacing: Style.marginS
+              Layout.bottomMargin: Style.marginM
 
-              RowLayout {
-                spacing: Style.marginS
-
-                NTextInput {
-                  id: newTodoInput
-                  placeholderText: pluginApi?.tr("panel.add_todo.placeholder")
-                  Layout.fillWidth: true
-                  Keys.onReturnPressed: addTodo()
-                }
-
-                NButton {
-                  text: pluginApi?.tr("panel.add_todo.add_button")
-                  onClicked: addTodo()
-                }
-              }
-
-              ScrollView {
+              NTextInput {
+                id: newTodoInput
+                placeholderText: pluginApi?.tr("panel.add_todo.placeholder")
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                ScrollBar.vertical.visible: false
-                ListView {
-                  id: todoListView
-                  model: root.filteredTodosModel
-                  spacing: Style.marginS
-                  boundsBehavior: Flickable.StopAtBounds
-                  flickableDirection: Flickable.VerticalFlick
+                Keys.onReturnPressed: addTodo()
+              }
 
-                  delegate: Item {
-                    id: delegateItem
-                    width: ListView.view.width
-                    height: Style.baseWidgetSize
+              NIconButton {
+                icon: "plus"
+                onClicked: addTodo()
+              }
+            }
 
-                    required property int index
-                    required property var modelData
+            ListView {
+              id: todoListView
+              Layout.fillWidth: true
+              Layout.fillHeight: true
+              clip: true
+              model: root.filteredTodosModel
+              spacing: Style.marginS
+              boundsBehavior: Flickable.StopAtBounds
+              flickableDirection: Flickable.VerticalFlick
 
-                    // Properties for drag functionality
-                    property bool dragging: false
-                    property int dragStartY: 0
-                    property int dragStartIndex: -1
-                    property int dragTargetIndex: -1
-                    property int itemSpacing: Style.marginS
+              delegate: Item {
+                id: delegateItem
+                width: ListView.view.width
+                height: Style.baseWidgetSize
 
-                    // Position binding for non-dragging state
-                    y: {
-                      if (delegateItem.dragging) {
-                        return delegateItem.y;
-                      }
+                required property int index
+                required property var modelData
 
-                      // Check if any item is being dragged
-                      var draggedIndex = -1;
-                      var targetIndex = -1;
-                      for (var i = 0; i < todoListView.count; i++) {
-                        var item = todoListView.itemAtIndex(i);
-                        if (item && item.dragging) {
-                          draggedIndex = item.dragStartIndex;
-                          targetIndex = item.dragTargetIndex;
-                          break;
-                        }
-                      }
+                // Properties for drag functionality
+                property bool dragging: false
+                property int dragStartY: 0
+                property int dragStartIndex: -1
+                property int dragTargetIndex: -1
+                property int itemSpacing: Style.marginS
 
-                      // If an item is being dragged, adjust positions
-                      if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-                        var currentIndex = delegateItem.index;
+                // Properties for edit functionality
+                property bool editing: false
+                property string originalText: ""
 
-                        if (draggedIndex < targetIndex) {
-                          // Dragging down: shift items up between draggedIndex and targetIndex
-                          if (currentIndex > draggedIndex && currentIndex <= targetIndex) {
-                            return (currentIndex - 1) * (delegateItem.height + delegateItem.itemSpacing);
-                          }
-                        } else {
-                          // Dragging up: shift items down between targetIndex and draggedIndex
-                          if (currentIndex >= targetIndex && currentIndex < draggedIndex) {
-                            return (currentIndex + 1) * (delegateItem.height + delegateItem.itemSpacing);
-                          }
-                        }
-                      }
+                // Methods for edit functionality
+                function startEdit() {
+                  editing = true;
+                  originalText = modelData.text;
+                }
 
-                      return delegateItem.index * (delegateItem.height + delegateItem.itemSpacing);
-                    }
+                function saveEdit() {
+                  if (pluginApi && todoTextEdit.text.trim() !== "") {
+                    var todos = pluginApi.pluginSettings.todos || [];
 
-                    // Behavior for smooth animation when not dragging
-                    Behavior on y {
-                      enabled: !delegateItem.dragging
-                      NumberAnimation {
-                        duration: Style.animationNormal
-                        easing.type: Easing.OutQuad
+                    for (var i = 0; i < todos.length; i++) {
+                      if (todos[i].id === modelData.id) {
+                        todos[i].text = todoTextEdit.text.trim();
+                        break;
                       }
                     }
 
-                    // The actual todo item rectangle
-                    Rectangle {
-                      anchors.fill: parent
-                      color: Color.mSurface
-                      radius: Style.radiusS
+                    pluginApi.pluginSettings.todos = todos;
+                    pluginApi.saveSettings();
 
-                      RowLayout {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: Style.marginM
-                        anchors.rightMargin: Style.marginM
-                        spacing: Style.marginS
+                    root.loadTodos();
+                  }
+                  editing = false;
+                }
 
-                        // Drag handle
-                        Rectangle {
-                          id: dragHandle
+                function cancelEdit() {
+                  editing = false;
+                  // Restore the original text when cancelling
+                  if (todoTextEdit) {
+                    todoTextEdit.text = originalText;
+                  }
+                }
 
-                          Layout.preferredWidth: Style.baseWidgetSize * 0.7
-                          Layout.preferredHeight: Style.baseWidgetSize * 0.7
-                          radius: Style.iRadiusXS
-                          color: dragHandleMouseArea.containsMouse ? Color.mSurfaceVariant : "transparent"
+                // Watch for editing property changes to handle focus
+                onEditingChanged: {
+                    if (editing) {
+                        // Use a timer to delay the focus operation
+                        var timer = Qt.createQmlObject("
+                            import QtQuick 2.0;
+                            Timer {
+                                interval: 50;
+                                running: true;
+                                onTriggered: {
+                                    if (todoTextEdit && todoTextEdit.input) {
+                                        todoTextEdit.input.forceActiveFocus();
+                                    }
+                                }
+                            }", delegateItem);
+                    }
+                }
 
-                          Behavior on color {
-                            ColorAnimation {
-                              duration: Style.animationFast
+                // Position binding for non-dragging state
+                y: {
+                  if (delegateItem.dragging) {
+                    return delegateItem.y;
+                  }
+
+                  var draggedIndex = -1;
+                  var targetIndex = -1;
+                  for (var i = 0; i < todoListView.count; i++) {
+                    var item = todoListView.itemAtIndex(i);
+                    if (item && item.dragging) {
+                      draggedIndex = item.dragStartIndex;
+                      targetIndex = item.dragTargetIndex;
+                      break;
+                    }
+                  }
+
+                  // If an item is being dragged, adjust positions
+                  if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+                    var currentIndex = delegateItem.index;
+
+                    if (draggedIndex < targetIndex) {
+                      if (currentIndex > draggedIndex && currentIndex <= targetIndex) {
+                        return (currentIndex - 1) * (delegateItem.height + delegateItem.itemSpacing);
+                      }
+                    } else {
+                      if (currentIndex >= targetIndex && currentIndex < draggedIndex) {
+                        return (currentIndex + 1) * (delegateItem.height + delegateItem.itemSpacing);
+                      }
+                    }
+                  }
+
+                  return delegateItem.index * (delegateItem.height + delegateItem.itemSpacing);
+                }
+
+                // Behavior for smooth animation when not dragging
+                Behavior on y {
+                  enabled: !delegateItem.dragging
+                  NumberAnimation {
+                    duration: Style.animationNormal
+                    easing.type: Easing.OutQuad
+                  }
+                }
+
+                // The actual todo item rectangle
+                Rectangle {
+                  anchors.fill: parent
+                  color: Color.mSurface
+                  radius: Style.radiusS
+
+                  RowLayout {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: Style.marginM
+                    anchors.rightMargin: Style.marginM
+                    spacing: Style.marginS
+
+                    // Drag handle
+                    Item {
+                      id: dragHandle
+
+                      Layout.preferredWidth: Style.baseWidgetSize * 0.5
+                      Layout.preferredHeight: Style.baseWidgetSize * 0.8
+
+                      NIcon {
+                        id: dragHandleIcon
+                        anchors.centerIn: parent
+                        icon: "grip-vertical"
+                        pointSize: Style.fontSizeM
+                        color: Color.mOnSurfaceVariant
+                        opacity: 0.5
+
+                        states: [
+                          State {
+                            name: "hovered"
+                            when: dragHandleMouseArea.containsMouse
+                            PropertyChanges {
+                              target: dragHandleIcon
+                              opacity: 1.0
+                              color: Color.mOnSurface
                             }
                           }
+                        ]
 
-                          ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: Style.marginS
+                        transitions: [
+                          Transition {
+                            from: "*"; to: "hovered"
+                            NumberAnimation { properties: "opacity"; duration: 150 }
+                          },
+                          Transition {
+                            from: "hovered"; to: "*"
+                            NumberAnimation { properties: "opacity"; duration: 150 }
+                          }
+                        ]
+                      }
 
-                            Repeater {
-                              model: 3
-                              Rectangle {
-                                Layout.preferredWidth: Style.baseWidgetSize * 0.7 * 0.4
-                                Layout.preferredHeight: 2
-                                radius: 1
-                                color: Color.mOutline
+                      MouseArea {
+                        id: dragHandleMouseArea
+
+                        anchors.fill: parent
+                        cursorShape: Qt.SizeVerCursor
+                        hoverEnabled: true
+                        preventStealing: false
+                        z: 1000
+
+                        onPressed: mouse => {
+                                      delegateItem.dragStartIndex = delegateItem.index;
+                                      delegateItem.dragTargetIndex = delegateItem.index;
+                                      delegateItem.dragStartY = delegateItem.y;
+                                      delegateItem.dragging = true;
+                                      delegateItem.z = 999;
+
+                                      // Signal that interaction started (prevents panel close)
+                                      preventStealing = true;
+                                    }
+
+                        onPositionChanged: mouse => {
+                                              if (delegateItem.dragging) {
+                                                var dy = mouse.y - dragHandle.height / 2;
+                                                var newY = delegateItem.y + dy;
+
+                                                // Constrain within bounds
+                                                newY = Math.max(0, Math.min(newY, todoListView.contentHeight - delegateItem.height));
+                                                delegateItem.y = newY;
+
+                                                // Calculate target index (but don't apply yet)
+                                                var targetIndex = Math.floor((newY + delegateItem.height / 2) / (delegateItem.height + delegateItem.itemSpacing));
+                                                targetIndex = Math.max(0, Math.min(targetIndex, todoListView.count - 1));
+
+                                                delegateItem.dragTargetIndex = targetIndex;
+                                              }
+                                            }
+
+                        onReleased: {
+                          // Apply the model change now that drag is complete
+                          if (delegateItem.dragStartIndex !== -1 && delegateItem.dragTargetIndex !== -1 && delegateItem.dragStartIndex !== delegateItem.dragTargetIndex) {
+                            moveTodoItem(delegateItem.dragStartIndex, delegateItem.dragTargetIndex);
+                          }
+
+                          delegateItem.dragging = false;
+                          delegateItem.dragStartIndex = -1;
+                          delegateItem.dragTargetIndex = -1;
+                          delegateItem.z = 0;
+
+                          // Reset interaction prevention
+                          preventStealing = false;
+                        }
+
+                        onCanceled: {
+                          // Handle cancel (e.g., ESC key pressed during drag)
+                          delegateItem.dragging = false;
+                          delegateItem.dragStartIndex = -1;
+                          delegateItem.dragTargetIndex = -1;
+                          delegateItem.z = 0;
+
+                          // Reset interaction prevention
+                          preventStealing = false;
+                        }
+                      }
+                    }
+
+                    // Checkbox
+                    Item {
+                      Layout.preferredWidth: Style.baseWidgetSize * 0.7
+                      Layout.preferredHeight: Style.baseWidgetSize * 0.7
+
+                      Rectangle {
+                        id: box
+
+                        anchors.fill: parent
+                        radius: Style.iRadiusXS
+                        color: modelData.completed ? Color.mPrimary : Color.mSurface
+                        border.color: Color.mOutline
+                        border.width: Style.borderS
+
+                        Behavior on color {
+                          ColorAnimation {
+                            duration: Style.animationFast
+                          }
+                        }
+
+                        NIcon {
+                          visible: modelData.completed
+                          anchors.centerIn: parent
+                          anchors.horizontalCenterOffset: -1
+                          icon: "check"
+                          color: Color.mOnPrimary
+                          pointSize: Math.max(Style.fontSizeXS, Style.baseWidgetSize * 0.7 * 0.5)
+                        }
+
+                        MouseArea {
+                          anchors.fill: parent
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            if (pluginApi) {
+                              var todos = pluginApi.pluginSettings.todos || [];
+
+                              for (var i = 0; i < todos.length; i++) {
+                                if (todos[i].id === modelData.id) {
+                                  todos[i].completed = !modelData.completed;
+                                  break;
+                                }
                               }
+
+                              pluginApi.pluginSettings.todos = todos;
+
+                              var completedCount = 0;
+                              for (var j = 0; j < todos.length; j++) {
+                                if (todos[j].completed) {
+                                  completedCount++;
+                                }
+                              }
+                              pluginApi.pluginSettings.completedCount = completedCount;
+
+                              moveTodoToCorrectPosition(modelData.id);
+
+                              loadTodos();
                             }
                           }
+                        }
+                      }
+                    }
+
+                    // Text container (using Layout to fit in the RowLayout)
+                    Item {
+                      Layout.fillWidth: true
+                      Layout.preferredHeight: parent.height
+
+                      // Normal text display
+                      NText {
+                        id: todoTextDisplay
+                        visible: !delegateItem.editing
+                        text: modelData.text
+                        color: modelData.completed ? Color.mOnSurfaceVariant : Color.mOnSurface
+                        font.strikeout: modelData.completed
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        anchors.fill: parent
+                        anchors.leftMargin: Style.marginS
+                        anchors.rightMargin: Style.marginS
+                      }
+
+                      // Edit text field - Using TextField directly to have more control
+                      Item {
+                        id: todoTextEditContainer
+                        visible: delegateItem.editing
+                        anchors.fill: parent
+                        anchors.leftMargin: Style.marginS
+                        anchors.rightMargin: Style.baseWidgetSize * 0.8 + Style.marginL
+                        height: parent.height * 0.8
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        TextField {
+                          id: todoTextEdit
+                          anchors.fill: parent
+                          anchors.rightMargin: Style.baseWidgetSize * 0.8
+                          text: modelData.text
+
+                          verticalAlignment: TextInput.AlignVCenter
+
+                          echoMode: TextInput.Normal
+                          color: Color.mOnSurface
+                          placeholderTextColor: Qt.alpha(Color.mOnSurfaceVariant, 0.6)
+
+                          selectByMouse: true
+
+                          topPadding: 0
+                          bottomPadding: 0
+                          leftPadding: Style.marginS
+                          rightPadding: Style.baseWidgetSize * 0.6
+
+                          font.family: Settings.data.ui.fontDefault
+                          font.pointSize: Style.fontSizeS * Style.uiScaleRatio
+                          font.weight: Style.fontWeightRegular
+
+                          // Remove the frame/background to eliminate border
+                          background: null
+
+                          Keys.onReturnPressed: {
+                            delegateItem.saveEdit();
+                          }
+
+                          Keys.onEscapePressed: {
+                            delegateItem.cancelEdit();
+                          }
+
+                          // Set focus when visible
+                          onVisibleChanged: {
+                            if (visible) {
+                              Qt.callLater(function() {
+                                todoTextEdit.forceActiveFocus();
+                              });
+                            }
+                          }
+                        }
+
+                        // Clear button
+                        NIconButton {
+                          icon: "restore"
+                          tooltipText: "Clear text"
+
+                          anchors.right: parent.right
+                          anchors.verticalCenter: parent.verticalCenter
+                          anchors.rightMargin: Style.marginM
+
+                          scale: 0.7  // Reduce the button size with scaling
+                          colorBg: "transparent"
+                          colorBgHover: "transparent"
+                          colorFg: Color.mOnSurface
+                          colorFgHover: Color.mError
+
+                          visible: todoTextEdit.text.length > 0
+
+                          onClicked: {
+                            todoTextEdit.clear();
+                            todoTextEdit.forceActiveFocus();
+                          }
+                        }
+                      }
+                    }
+
+                    // Edit button (only show when not editing) and Save/Cancel buttons
+                    Item {
+                      Layout.preferredWidth: Style.baseWidgetSize * 0.8
+                      Layout.preferredHeight: parent.height
+
+                      // Edit button (only show when not editing)
+                      Item {
+                        id: editButtonContainer
+                        visible: !delegateItem.editing
+                        anchors.centerIn: parent
+
+                        implicitWidth: Style.baseWidgetSize * 0.8
+                        implicitHeight: Style.baseWidgetSize * 0.8
+
+                        NIcon {
+                          id: editButtonIcon
+                          anchors.centerIn: parent
+                          icon: "pencil"
+                          pointSize: Style.fontSizeM
+                          color: Color.mOnSurfaceVariant
+                          opacity: 0.5
 
                           MouseArea {
-                            id: dragHandleMouseArea
-
+                            id: editMouseArea
                             anchors.fill: parent
-                            cursorShape: Qt.SizeVerCursor
                             hoverEnabled: true
-                            preventStealing: false
-                            z: 1000
-
-                            onPressed: mouse => {
-                                         delegateItem.dragStartIndex = delegateItem.index;
-                                         delegateItem.dragTargetIndex = delegateItem.index;
-                                         delegateItem.dragStartY = delegateItem.y;
-                                         delegateItem.dragging = true;
-                                         delegateItem.z = 999;
-
-                                         // Signal that interaction started (prevents panel close)
-                                         preventStealing = true;
-                                       }
-
-                            onPositionChanged: mouse => {
-                                                 if (delegateItem.dragging) {
-                                                   var dy = mouse.y - dragHandle.height / 2;
-                                                   var newY = delegateItem.y + dy;
-
-                                                   // Constrain within bounds
-                                                   newY = Math.max(0, Math.min(newY, todoListView.contentHeight - delegateItem.height));
-                                                   delegateItem.y = newY;
-
-                                                   // Calculate target index (but don't apply yet)
-                                                   var targetIndex = Math.floor((newY + delegateItem.height / 2) / (delegateItem.height + delegateItem.itemSpacing));
-                                                   targetIndex = Math.max(0, Math.min(targetIndex, todoListView.count - 1));
-
-                                                   delegateItem.dragTargetIndex = targetIndex;
-                                                 }
-                                               }
-
-                            onReleased: {
-                              // Apply the model change now that drag is complete
-                              if (delegateItem.dragStartIndex !== -1 && delegateItem.dragTargetIndex !== -1 && delegateItem.dragStartIndex !== delegateItem.dragTargetIndex) {
-                                moveTodoItem(delegateItem.dragStartIndex, delegateItem.dragTargetIndex);
-                              }
-
-                              delegateItem.dragging = false;
-                              delegateItem.dragStartIndex = -1;
-                              delegateItem.dragTargetIndex = -1;
-                              delegateItem.z = 0;
-
-                              // Reset interaction prevention
-                              preventStealing = false;
-                            }
-
-                            onCanceled: {
-                              // Handle cancel (e.g., ESC key pressed during drag)
-                              delegateItem.dragging = false;
-                              delegateItem.dragStartIndex = -1;
-                              delegateItem.dragTargetIndex = -1;
-                              delegateItem.z = 0;
-
-                              // Reset interaction prevention
-                              preventStealing = false;
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                              delegateItem.startEdit();
                             }
                           }
-                        }
 
-                        // Checkbox
-                        Item {
-                          Layout.preferredWidth: Style.baseWidgetSize * 0.7
-                          Layout.preferredHeight: Style.baseWidgetSize * 0.7
+                          ToolTip {
+                            id: editToolTip
+                            text: pluginApi?.tr("panel.todo_item.edit_button_tooltip") || "Edit"
+                            delay: 1000
+                            parent: editButtonIcon
+                            visible: editMouseArea.containsMouse
 
-                          Rectangle {
-                            id: box
-
-                            anchors.fill: parent
-                            radius: Style.iRadiusXS
-                            color: modelData.completed ? Color.mPrimary : Color.mSurface
-                            border.color: Color.mOutline
-                            border.width: Style.borderS
-
-                            Behavior on color {
-                              ColorAnimation {
-                                duration: Style.animationFast
-                              }
-                            }
-
-                            NIcon {
-                              visible: modelData.completed
-                              anchors.centerIn: parent
-                              anchors.horizontalCenterOffset: -1
-                              icon: "check"
+                            contentItem: NText {
+                              text: editToolTip.text
                               color: Color.mOnPrimary
-                              pointSize: Math.max(Style.fontSizeXS, Style.baseWidgetSize * 0.7 * 0.5)
+                              font.pointSize: Style.fontSizeXS
                             }
 
-                            MouseArea {
-                              anchors.fill: parent
-                              cursorShape: Qt.PointingHandCursor
-                              onClicked: {
-                                if (pluginApi) {
-                                  var todos = pluginApi.pluginSettings.todos || [];
-
-                                  for (var i = 0; i < todos.length; i++) {
-                                    if (todos[i].id === modelData.id) {
-                                      todos[i].completed = !modelData.completed;
-                                      break;
-                                    }
-                                  }
-
-                                  pluginApi.pluginSettings.todos = todos;
-
-                                  var completedCount = 0;
-                                  for (var j = 0; j < todos.length; j++) {
-                                    if (todos[j].completed) {
-                                      completedCount++;
-                                    }
-                                  }
-                                  pluginApi.pluginSettings.completedCount = completedCount;
-
-                                  pluginApi.saveSettings();
-                                  loadTodos();
-                                }
-                              }
+                            background: Rectangle {
+                              color: Color.mPrimary
+                              radius: Style.iRadiusS
+                              border.color: Qt.rgba(0, 0, 0, 0.2)
+                              border.width: 1
                             }
                           }
-                        }
 
-                        // Text
-                        NText {
-                          text: modelData.text
-                          color: modelData.completed ? Color.mOnSurfaceVariant : Color.mOnSurface
-                          font.strikeout: modelData.completed
-                          verticalAlignment: Text.AlignVCenter
-                          elide: Text.ElideRight
-                          Layout.fillWidth: true
-                        }
-
-                        // Edit button
-                        Item {
-                          id: editButtonContainer
-                          implicitWidth: Style.baseWidgetSize * 0.6
-                          implicitHeight: Style.baseWidgetSize * 0.6
-
-                          NIcon {
-                            id: editButtonIcon
-                            anchors.centerIn: parent
-                            icon: "pencil"
-                            pointSize: Style.fontSizeS
-                            color: Color.mOnSurfaceVariant
-                            opacity: 0.3
-
-                            MouseArea {
-                              id: editMouseArea
-                              anchors.fill: parent
-                              hoverEnabled: true
-                              cursorShape: Qt.PointingHandCursor
-                              onClicked: {
-                                // Set the current todo for editing
-                                currentTodoId = modelData.id;
-                                currentTodoText = modelData.text;
-                                editDialog.open();
-                              }
-                            }
-
-                            ToolTip {
-                              id: editToolTip
-                              text: pluginApi?.tr("panel.todo_item.edit_button_tooltip") || "Edit"
-                              delay: 1000
-                              parent: editButtonIcon
-                              visible: editMouseArea.containsMouse
-
-                              contentItem: NText {
-                                text: editToolTip.text
-                                color: Color.mOnPrimary
-                                font.pointSize: Style.fontSizeXS
-                              }
-
-                              background: Rectangle {
+                          states: [
+                            State {
+                              name: "hovered"
+                              when: editMouseArea.containsMouse
+                              PropertyChanges {
+                                target: editButtonIcon
+                                opacity: 1.0
                                 color: Color.mPrimary
-                                radius: Style.iRadiusS
-                                border.color: Qt.rgba(0, 0, 0, 0.2)
-                                border.width: 1
                               }
                             }
+                          ]
 
-                            states: [
-                              State {
-                                name: "hovered"
-                                when: editMouseArea.containsMouse
-                                PropertyChanges {
-                                  target: editButtonIcon
-                                  opacity: 1.0
-                                  color: Color.mPrimary
-                                }
-                              }
-                            ]
+                          transitions: [
+                            Transition {
+                              from: "*"; to: "hovered"
+                              NumberAnimation { properties: "opacity"; duration: 150 }
+                            },
+                            Transition {
+                              from: "hovered"; to: "*"
+                              NumberAnimation { properties: "opacity"; duration: 150 }
+                            }
+                          ]
+                        }
+                      }
 
-                            transitions: [
-                              Transition {
-                                from: "*"; to: "hovered"
-                                NumberAnimation { properties: "opacity"; duration: 150 }
-                              },
-                              Transition {
-                                from: "hovered"; to: "*"
-                                NumberAnimation { properties: "opacity"; duration: 150 }
-                              }
-                            ]
+                      // Save/Cancel buttons (only show when editing)
+                      RowLayout {
+                        id: editButtonsRow
+                        visible: delegateItem.editing
+                        anchors.centerIn: parent
+                        spacing: Style.marginS
+
+                        NIconButton {
+                          icon: "check"
+                          Layout.preferredWidth: Style.baseWidgetSize * 0.6
+                          Layout.preferredHeight: Style.baseWidgetSize * 0.6
+
+                          onClicked: {
+                            delegateItem.saveEdit();
                           }
                         }
 
-                        // Delete button
-                        Item {
-                          id: deleteButtonContainer
-                          implicitWidth: Style.baseWidgetSize * 0.6
-                          implicitHeight: Style.baseWidgetSize * 0.6
+                        NIconButton {
+                          icon: "x"
+                          Layout.preferredWidth: Style.baseWidgetSize * 0.6
+                          Layout.preferredHeight: Style.baseWidgetSize * 0.6
 
-                          NIcon {
-                            id: deleteButtonIcon
-                            anchors.centerIn: parent
-                            icon: "x"
-                            pointSize: Style.fontSizeS
-                            color: Color.mOnSurfaceVariant
-                            opacity: 0.3
-
-                            MouseArea {
-                              id: mouseArea
-                              anchors.fill: parent
-                              hoverEnabled: true
-                              cursorShape: Qt.PointingHandCursor
-                              onClicked: {
-                                // Directly modify the todos list through pluginApi
-                                if (pluginApi) {
-                                  var todos = pluginApi.pluginSettings.todos || [];
-                                  var indexToRemove = -1;
-
-                                  for (var i = 0; i < todos.length; i++) {
-                                    if (todos[i].id === modelData.id) {
-                                      indexToRemove = i;
-                                      break;
-                                    }
-                                  }
-
-                                  if (indexToRemove !== -1) {
-                                    todos.splice(indexToRemove, 1);
-
-                                    pluginApi.pluginSettings.todos = todos;
-                                    pluginApi.pluginSettings.count = todos.length;
-
-                                    // Recalculate completed count after removal
-                                    var completedCount = 0;
-                                    for (var j = 0; j < todos.length; j++) {
-                                      if (todos[j].completed) {
-                                        completedCount++;
-                                      }
-                                    }
-                                    pluginApi.pluginSettings.completedCount = completedCount;
-
-                                    pluginApi.saveSettings();
-                                    loadTodos();
-                                  } else {
-                                    Logger.e("Todo", "Todo with ID " + modelData.id + " not found for deletion");
-                                  }
-                                } else {
-                                  Logger.e("Todo", "pluginApi is null, cannot delete todo");
-                                }
-                              }
-                            }
-
-                            ToolTip {
-                              id: deleteToolTip
-                              text: pluginApi?.tr("panel.todo_item.delete_button_tooltip") || "Delete"
-                              delay: 1000
-                              parent: deleteButtonIcon
-                              visible: mouseArea.containsMouse
-
-                              contentItem: NText {
-                                text: deleteToolTip.text
-                                color: Color.mOnError
-                                font.pointSize: Style.fontSizeXS
-                              }
-
-                              background: Rectangle {
-                                color: Color.mError
-                                radius: Style.iRadiusS
-                                border.color: Qt.rgba(0, 0, 0, 0.2)
-                                border.width: 1
-                              }
-                            }
-
-                            states: [
-                              State {
-                                name: "hovered"
-                                when: mouseArea.containsMouse
-                                PropertyChanges {
-                                  target: deleteButtonIcon
-                                  opacity: 1.0
-                                  color: Color.mError
-                                }
-                              }
-                            ]
-
-                            transitions: [
-                              Transition {
-                                from: "*"; to: "hovered"
-                                NumberAnimation { properties: "opacity"; duration: 150 }
-                              },
-                              Transition {
-                                from: "hovered"; to: "*"
-                                NumberAnimation { properties: "opacity"; duration: 150 }
-                              }
-                            ]
+                          onClicked: {
+                            delegateItem.cancelEdit();
                           }
                         }
                       }
                     }
-                  }
 
-                  highlightRangeMode: ListView.NoHighlightRange
-                  preferredHighlightBegin: 0
-                  preferredHighlightEnd: 0
+                    // Delete button
+                    Item {
+                      id: deleteButtonContainer
+                      implicitWidth: Style.baseWidgetSize * 0.8
+                      implicitHeight: Style.baseWidgetSize * 0.8
 
-                  header: Item {
-                    width: ListView.view.width
-                    height: root.todosModel.count === 0 ? contentText.implicitHeight + Style.marginL * 2 : 0
+                      NIcon {
+                        id: deleteButtonIcon
+                        anchors.centerIn: parent
+                        icon: "x"
+                        pointSize: Style.fontSizeM
+                        color: Color.mOnSurfaceVariant
+                        opacity: 0.5
 
-                    NText {
-                      id: contentText
-                      anchors.centerIn: parent
-                      text: root.todosModel.count === 0 ? pluginApi?.tr("panel.empty_state.message") : ""
-                      color: Color.mOnSurfaceVariant
-                      font.pointSize: Style.fontSizeM
-                      font.weight: Font.Normal
+                        MouseArea {
+                          id: mouseArea
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: {
+                            // Directly modify the todos list through pluginApi
+                            if (pluginApi) {
+                              var todos = pluginApi.pluginSettings.todos || [];
+                              var indexToRemove = -1;
+
+                              for (var i = 0; i < todos.length; i++) {
+                                if (todos[i].id === modelData.id) {
+                                  indexToRemove = i;
+                                  break;
+                                }
+                              }
+
+                              if (indexToRemove !== -1) {
+                                todos.splice(indexToRemove, 1);
+
+                                pluginApi.pluginSettings.todos = todos;
+                                pluginApi.pluginSettings.count = todos.length;
+
+                                // Recalculate completed count after removal
+                                var completedCount = 0;
+                                for (var j = 0; j < todos.length; j++) {
+                                  if (todos[j].completed) {
+                                    completedCount++;
+                                  }
+                                }
+                                pluginApi.pluginSettings.completedCount = completedCount;
+
+                                pluginApi.saveSettings();
+                                loadTodos();
+                              } else {
+                                Logger.e("Todo", "Todo with ID " + modelData.id + " not found for deletion");
+                              }
+                            } else {
+                              Logger.e("Todo", "pluginApi is null, cannot delete todo");
+                            }
+                          }
+                        }
+
+                        ToolTip {
+                          id: deleteToolTip
+                          text: pluginApi?.tr("panel.todo_item.delete_button_tooltip") || "Delete"
+                          delay: 1000
+                          parent: deleteButtonIcon
+                          visible: mouseArea.containsMouse
+
+                          contentItem: NText {
+                            text: deleteToolTip.text
+                            color: Color.mOnError
+                            font.pointSize: Style.fontSizeXS
+                          }
+
+                          background: Rectangle {
+                            color: Color.mError
+                            radius: Style.iRadiusS
+                            border.color: Qt.rgba(0, 0, 0, 0.2)
+                            border.width: 1
+                          }
+                        }
+
+                        states: [
+                          State {
+                            name: "hovered"
+                            when: mouseArea.containsMouse
+                            PropertyChanges {
+                              target: deleteButtonIcon
+                              opacity: 1.0
+                              color: Color.mError
+                            }
+                          }
+                        ]
+
+                        transitions: [
+                          Transition {
+                            from: "*"; to: "hovered"
+                            NumberAnimation { properties: "opacity"; duration: 150 }
+                          },
+                          Transition {
+                            from: "hovered"; to: "*"
+                            NumberAnimation { properties: "opacity"; duration: 150 }
+                          }
+                        ]
+                      }
                     }
                   }
                 }
               }
-            }
-          }
-        }
-      }
-    }
-  }
 
-  // Properties for edit dialog
-  property var currentTodoId: null
-  property string currentTodoText: ""
+              highlightRangeMode: ListView.NoHighlightRange
+              preferredHighlightBegin: 0
+              preferredHighlightEnd: 0
 
-  // Edit Dialog
-  Popup {
-    id: editDialog
-    modal: true
-    dim: true
-    anchors.centerIn: Overlay.overlay
-    width: 400 * Style.uiScaleRatio
-    height: 200 * Style.uiScaleRatio
-    padding: Style.marginL
-    background: Rectangle {
-      color: Color.mSurface
-      border.color: Color.mOutline
-      border.width: 1
-      radius: Style.radiusL
-    }
+              header: Item {
+                width: ListView.view.width
+                height: root.todosModel.count === 0 ? contentText.implicitHeight + Style.marginL * 2 : 0
 
-    ColumnLayout {
-      anchors.fill: parent
-      spacing: Style.marginM
-
-      NText {
-        text: pluginApi?.tr("panel.edit_todo.title") || "Edit Todo"
-        font.pointSize: Style.fontSizeL
-        font.weight: Font.Bold
-        color: Color.mOnSurface
-        Layout.fillWidth: true
-        horizontalAlignment: Text.AlignHCenter
-      }
-
-      NTextInput {
-        id: editTodoInput
-        text: root.currentTodoText
-        placeholderText: pluginApi?.tr("panel.edit_todo.placeholder") || "Enter todo text"
-        Layout.fillWidth: true
-        onTextChanged: root.currentTodoText = text
-      }
-
-      RowLayout {
-        Layout.alignment: Qt.AlignHCenter
-        spacing: Style.marginM
-
-        NButton {
-          text: pluginApi?.tr("panel.edit_todo.cancel_button") || "Cancel"
-          onClicked: {
-            editDialog.close();
-          }
-        }
-
-        NButton {
-          text: pluginApi?.tr("panel.edit_todo.save_button") || "Save"
-          backgroundColor: Color.mPrimary
-          textColor: Color.mOnPrimary
-          onClicked: {
-            if (pluginApi && root.currentTodoId !== null && root.currentTodoText.trim() !== "") {
-              var todos = pluginApi.pluginSettings.todos || [];
-
-              for (var i = 0; i < todos.length; i++) {
-                if (todos[i].id === root.currentTodoId) {
-                  todos[i].text = root.currentTodoText.trim();
-                  break;
+                NText {
+                  id: contentText
+                  anchors.centerIn: parent
+                  text: root.todosModel.count === 0 ? pluginApi?.tr("panel.empty_state.message") : ""
+                  color: Color.mOnSurfaceVariant
+                  pointSize: Style.fontSizeM
                 }
               }
-
-              pluginApi.pluginSettings.todos = todos;
-              pluginApi.saveSettings();
-              loadTodos();
-              editDialog.close();
             }
           }
         }
       }
     }
-
-    onOpened: {
-      editTodoInput.forceActiveFocus();
-      editTodoInput.text = root.currentTodoText;
-    }
-
-    onClosed: {
-      root.currentTodoId = null;
-      root.currentTodoText = "";
-    }
   }
+
 
   function addTodo() {
     if (newTodoInput.text.trim() !== "") {
@@ -740,7 +871,7 @@ Item {
         var todos = pluginApi.pluginSettings.todos || [];
 
         var newTodo = {
-          id: Date.now() // Use timestamp as simple ID
+          id: Date.now()
               ,
           text: newTodoInput.text.trim(),
           completed: false,
@@ -756,7 +887,7 @@ Item {
         pluginApi.saveSettings();
 
         newTodoInput.text = "";
-        loadTodos(); // Reload todos to update view
+        loadTodos();
       }
     }
   }
@@ -778,7 +909,7 @@ Item {
     if (pluginApi) {
       pluginApi.pluginSettings.todos = newTodos;
       pluginApi.saveSettings();
-      loadTodos(); // Reload to update the view
+      loadTodos();
     }
   }
 }

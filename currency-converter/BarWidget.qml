@@ -112,10 +112,10 @@ Rectangle {
   }
 
   Component.onCompleted: {
-    console.log("Currency Converter Widget loaded");
-    console.log("From:", fromCurrency, "To:", toCurrency);
-    console.log("Display mode:", displayMode);
-    console.log("Width:", width, "Height:", height);
+    Logger.d("Currency", "Currency Converter Widget loaded");
+    Logger.d("Currency", "From:", fromCurrency, "To:", toCurrency);
+    Logger.d("Currency", "Display mode:", displayMode);
+    Logger.d("Currency", "Width:", width, "Height:", height);
   }
 
   function fetchExchangeRate() {

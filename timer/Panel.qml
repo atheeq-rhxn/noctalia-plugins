@@ -256,7 +256,7 @@ Item {
 
             var centerX = width / 2;
             var centerY = height / 2;
-            var radius = Math.min(width, height) / 2 - 10;
+            var radius = Math.min(width, height) / 2 - 5;
 
             if (radius <= 0) {
               return;
@@ -315,7 +315,7 @@ Item {
               if (totalSeconds === 0) {
                 return Style.fontSizeXXXL * 1.5 * scale;
               }
-              return (showingHours ? Style.fontSizeXXL * 1.5 : (Style.fontSizeXXL * 1.8)) * scale;
+              return (showingHours ? Style.fontSizeXXL * 1.3 : (Style.fontSizeXXL * 1.8)) * scale;
             }
 
             font.weight: Style.fontWeightBold

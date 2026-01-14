@@ -37,6 +37,7 @@
       "interval-warning": "⚠️ Sehr kurze Intervalle können zu vielen API-Anfragen führen.",
       "minutes": "Minuten",
       "no-results": "Keine Spiele gefunden. Überprüfen Sie die App ID und versuchen Sie es erneut.",
+      "open-settings": "Einstellungen öffnen",
       "search": "Suchen",
       "search-hint": "Suchen Sie Spiele nach Name oder Steam App ID. Die App ID finden Sie in der URL der Spielseite.",
       "search-placeholder": "App ID eingeben (z.B. 730 für CS2)",

@@ -113,7 +113,7 @@ Item {
       pluginApi.pluginSettings.fromCurrency = fromCurrency;
       pluginApi.pluginSettings.toCurrency = toCurrency;
       pluginApi.saveSettings();
-      console.log("Currency Converter: Saved currencies -", fromCurrency, "to", toCurrency);
+      Logger.d("Currency", "Currency Converter: Saved currencies -", fromCurrency, "to", toCurrency);
     }
   }
 

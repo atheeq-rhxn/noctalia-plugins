@@ -299,7 +299,7 @@ ColumnLayout {
                     
                     NIcon {
                       anchors.centerIn: parent
-                      icon: "gamepad"
+                      icon: "package"
                       color: Color.mOnSurfaceVariant
                       pointSize: 20
                     }
@@ -451,7 +451,7 @@ ColumnLayout {
                       
                       NIcon {
                         anchors.centerIn: parent
-                        icon: "gamepad"
+                        icon: "package"
                         color: Color.mOnSurfaceVariant
                         pointSize: 16
                       }
@@ -677,7 +677,7 @@ ColumnLayout {
                 root.searching = false;
               }
             } catch (e) {
-              console.error("Error parsing search results:", e);
+              Logger.e("steam-price-watcher", "Error parsing search results:", e);
               root.searchResults = [];
               root.searching = false;
             }
@@ -726,7 +726,7 @@ ColumnLayout {
                 root.searchResults = temp;
               }
             } catch (e) {
-              console.error("Error parsing Steam API response:", e);
+              Logger.e("steam-price-watcher", "Error parsing Steam API response:", e);
             }
           }
           
@@ -761,7 +761,7 @@ ColumnLayout {
       
       pluginApi.pluginSettings.watchlist = temp;
       pluginApi.saveSettings();
-      console.log("Steam Price Watcher: Added", game.name, "with target price", targetPrice);
+      Logger.d("Steam", "Steam Price Watcher: Added", game.name, "with target price", targetPrice);
       
       // Clear search
       searchInput.text = "";
@@ -790,7 +790,7 @@ ColumnLayout {
       
       pluginApi.pluginSettings.watchlist = temp;
       pluginApi.saveSettings();
-      console.log("Steam Price Watcher: Removed", removed[0].name, "and cleared from notifications");
+      Logger.d("Steam", "Steam Price Watcher: Removed", removed[0].name, "and cleared from notifications");
     }
   }
 
@@ -800,7 +800,7 @@ ColumnLayout {
       temp[index].targetPrice = newPrice;
       pluginApi.pluginSettings.watchlist = temp;
       pluginApi.saveSettings();
-      console.log("Steam Price Watcher: Updated", temp[index].name, "target price to", newPrice);
+      Logger.d("Steam", "Steam Price Watcher: Updated", temp[index].name, "target price to", newPrice);
     }
   }
 
@@ -893,7 +893,7 @@ ColumnLayout {
 
   // Called when user clicks Apply in settings dialog
   function saveSettings() {
-    console.log("SteamPriceWatcher: saveSettings() called");
+    Logger.d("Steam", "SteamPriceWatcher: saveSettings() called");
     
     if (!pluginApi) {
       Logger.e("SteamPriceWatcher", "Cannot save settings: pluginApi is null");
@@ -905,7 +905,7 @@ ColumnLayout {
     
     // Show notification
     var message = pluginApi?.tr("steam-price-watcher.settings.settings-saved") || "Plugin settings saved.";
-    console.log("SteamPriceWatcher: Showing toast with message:", message);
+    Logger.d("Steam", "SteamPriceWatcher: Showing toast with message:", message);
     ToastService.showNotice(message);
     
     Logger.i("SteamPriceWatcher", "Settings saved successfully");

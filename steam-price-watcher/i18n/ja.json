@@ -37,6 +37,7 @@
       "interval-warning": "⚠️ 非常に短い間隔は、多くのAPIリクエストを引き起こす可能性があります。",
       "minutes": "分",
       "no-results": "ゲームが見つかりません。App IDを確認して再試行してください。",
+      "open-settings": "設定を開く",
       "search": "検索",
       "search-hint": "ゲーム名またはSteam App IDで検索します。App IDはゲームページのURLで確認できます。",
       "search-placeholder": "App IDを入力 (例: CS2の場合730)",

@@ -1,0 +1,34 @@
+{
+  "id": "hyprland-steam-overlay",
+  "name": "Steam Overlay (Hyprland)",
+  "version": "1.7.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "blacku",
+  "license": "MIT",
+  "description": "Steam overlay with automatic window management for Hyprland..",
+  "tags": [
+    "Gaming",
+    "Hyprland"
+  ],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "autoLaunchSteam": true,
+      "hasNewMessages": false,
+      "friendsWidthPercent": 10,
+      "mainWidthPercent": 60,
+      "chatWidthPercent": 25,
+      "gapSize": 10,
+      "topMarginPercent": 2.5,
+      "windowHeightPercent": 95
+    }
+  }
+}

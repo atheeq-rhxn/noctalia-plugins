@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Services.UI
 import qs.Widgets
 
 // Panel Component
@@ -13,8 +14,8 @@ Item {
   // SmartPanel
   readonly property var geometryPlaceholder: panelContainer
 
-  property real contentPreferredWidth: 680 * Style.uiScaleRatio
-  property real contentPreferredHeight: 540 * Style.uiScaleRatio
+  property real contentPreferredWidth: 440 * Style.uiScaleRatio
+  property real contentPreferredHeight: 580 * Style.uiScaleRatio
 
   readonly property bool allowAttach: true
   // readonly property bool panelAnchorHorizontalCenter: true
@@ -53,7 +54,7 @@ Item {
 
         ColumnLayout {
           anchors.centerIn: parent
-          spacing: Style.marginXL
+          spacing: Style.marginL
 
           // Large hello message
           NIcon {
@@ -65,7 +66,7 @@ Item {
           // Core I18n translation example
           NText {
             Layout.alignment: Qt.AlignHCenter
-            text: I18n.tr("lock-screen.welcome-back")
+            text: I18n.tr("system.welcome-back")
             pointSize: Style.fontSizeL
             font.weight: Font.Medium
             color: Color.mOnSurface
@@ -88,11 +89,21 @@ Item {
             color: Color.mPrimary
           }
 
-          NText {
+          // Button to open plugin settings - demonstrates using panelOpenScreen
+          NButton {
             Layout.alignment: Qt.AlignHCenter
-            text: "This is a plugin panel!"
-            font.pointSize: Style.fontSizeL * Style.uiScaleRatio
-            color: Color.mOnSurfaceVariant
+            Layout.topMargin: Style.marginL
+            text: "Open Plugin Settings"
+            icon: "settings"
+
+            onClicked: {
+              // Use panelOpenScreen to get the screen this panel is on
+              var screen = pluginApi?.panelOpenScreen;
+              if (screen && pluginApi?.manifest) {
+                Logger.i("HelloWorld", "Opening plugin settings on screen:", screen.name);
+                BarService.openPluginSettings(screen, pluginApi.manifest);
+              }
+            }
           }
         }
       }

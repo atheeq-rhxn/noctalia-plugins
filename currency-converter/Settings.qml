@@ -33,7 +33,7 @@ ColumnLayout {
     
     // Call saveSettings without parameters
     pluginApi.saveSettings();
-    console.log("Currency Converter: Settings saved successfully");
+    Logger.d("Currency", "Currency Converter: Settings saved successfully");
   }
 
   property var currencies: [

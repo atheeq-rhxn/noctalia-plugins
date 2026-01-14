@@ -37,6 +37,7 @@
       "interval-warning": "⚠️ 非常短的间隔可能导致大量API请求。",
       "minutes": "分钟",
       "no-results": "未找到游戏。检查App ID并重试。",
+      "open-settings": "打开设置",
       "search": "搜索",
       "search-hint": "通过名称或Steam App ID搜索游戏。您可以在游戏页面的URL中找到App ID。",
       "search-placeholder": "输入App ID（例如：CS2为730）",
