@@ -9,33 +9,59 @@ import qs.Widgets
 Item {
   id: root
   property var pluginApi: null
+
+  // Settings
+  property var cfg: pluginApi?.pluginSettings || ({})
+  property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
+
+  // Settings values
+  property int settingsWidth: cfg.windowWidth ?? defaults.windowWidth ?? 1400
+  property int settingsHeight: cfg.windowHeight ?? defaults.windowHeight ?? 0
+  property bool autoHeight: cfg.autoHeight ?? defaults.autoHeight ?? true
+  property int columnCount: cfg.columnCount ?? defaults.columnCount ?? 3
+  property string hyprlandConfigPath: cfg.hyprlandConfigPath || defaults.hyprlandConfigPath || "~/.config/hypr/hyprland.conf"
+  property string niriConfigPath: cfg.niriConfigPath || defaults.niriConfigPath || "~/.config/niri/config.kdl"
+
   property var rawCategories: pluginApi?.pluginSettings?.cheatsheetData || []
   property var categories: processCategories(rawCategories)
   property string compositor: pluginApi?.pluginSettings?.detectedCompositor || ""
-  property var column0Items: []
-  property var column1Items: []
-  property var column2Items: []
+
+  // Dynamic column items (up to 4 columns)
+  property var columnItems: []
 
   onRawCategoriesChanged: {
     categories = processCategories(rawCategories);
     updateColumnItems();
+    // Hide error view when data is loaded
+    if (rawCategories.length > 0) {
+      errorView.visible = false;
+    }
   }
 
   onCategoriesChanged: {
     updateColumnItems();
-    // Trigger height recalculation
+    contentPreferredHeight = calculateDynamicHeight();
+  }
+
+  onColumnCountChanged: {
+    updateColumnItems();
     contentPreferredHeight = calculateDynamicHeight();
   }
 
   function updateColumnItems() {
     var assignments = distributeCategories();
-    column0Items = buildColumnItems(assignments[0]);
-    column1Items = buildColumnItems(assignments[1]);
-    column2Items = buildColumnItems(assignments[2]);
+    var items = [];
+    for (var i = 0; i < columnCount; i++) {
+      items.push(buildColumnItems(assignments[i] || []));
+    }
+    columnItems = items;
   }
 
-  property real contentPreferredWidth: 1400
-  // Dynamic height calculation based on content
+  // Screen height limit (80% of screen)
+  property var panelOpenScreen: pluginApi?.panelOpenScreen
+  property real maxScreenHeight: panelOpenScreen ? panelOpenScreen.height * 0.8 : 800
+
+  property real contentPreferredWidth: settingsWidth
   property real contentPreferredHeight: calculateDynamicHeight()
   readonly property var geometryPlaceholder: panelContainer
   readonly property bool allowAttach: false
@@ -46,28 +72,29 @@ Item {
   property bool isLoading: false
 
   function calculateDynamicHeight() {
-    if (categories.length === 0) return 400; // Default when no data
+    // If auto height is disabled, use manual height (but still respect screen limit)
+    if (!autoHeight && settingsHeight > 0) {
+      return Math.min(settingsHeight, maxScreenHeight);
+    }
 
-    // Calculate the height of the tallest column
+    if (categories.length === 0) return Math.min(400, maxScreenHeight);
+
     var assignments = distributeCategories();
     var maxColumnHeight = 0;
 
-    for (var col = 0; col < 3; col++) {
+    for (var col = 0; col < columnCount; col++) {
       var colHeight = 0;
-      var catIndices = assignments[col];
+      var catIndices = assignments[col] || [];
 
       for (var i = 0; i < catIndices.length; i++) {
         var catIndex = catIndices[i];
         if (catIndex >= categories.length) continue;
 
         var cat = categories[catIndex];
-        // Header: ~35px (font + margins)
-        colHeight += 35;
-        // Each bind: 23px (22px height + 1px margin)
-        colHeight += cat.binds.length * 23;
-        // Spacer between categories: 10px
+        colHeight += 26; // Header
+        colHeight += cat.binds.length * 20; // Binds
         if (i < catIndices.length - 1) {
-          colHeight += 10;
+          colHeight += 6; // Spacer
         }
       }
 
@@ -76,15 +103,37 @@ Item {
       }
     }
 
-    // Add: header (45px) + top/bottom margins (2 * 16px) + extra padding (30px)
-    var totalHeight = 45 + maxColumnHeight + 32 + 30;
-
-    // Minimum height: 400px, Maximum height: 90% of screen or 1200px
-    return Math.max(400, Math.min(totalHeight, 1200));
+    // header (45) + content + margins (16)
+    var totalHeight = 45 + maxColumnHeight + 16;
+    // Limit to 80% of screen height
+    return Math.max(300, Math.min(totalHeight, maxScreenHeight));
   }
 
-  onPluginApiChanged: { if (pluginApi) checkAndGenerate(); }
-  Component.onCompleted: { if (pluginApi) checkAndGenerate(); }
+  // Flag to prevent re-parsing when settings are still loading
+  property bool settingsReady: false
+
+  onPluginApiChanged: {
+    if (pluginApi) {
+      // Small delay to allow settings to load properly after boot
+      settingsLoadTimer.restart();
+    }
+  }
+
+  Component.onCompleted: {
+    if (pluginApi) {
+      settingsLoadTimer.restart();
+    }
+  }
+
+  Timer {
+    id: settingsLoadTimer
+    interval: 100  // 100ms delay to allow settings to load
+    repeat: false
+    onTriggered: {
+      root.settingsReady = true;
+      checkAndGenerate();
+    }
+  }
 
   function detectCompositor() {
     var hyprlandSig = Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE");
@@ -131,7 +180,16 @@ Item {
   }
 
   function checkAndGenerate() {
-    if (root.rawCategories.length === 0) {
+    // Check if settings are ready and we actually need to generate
+    if (!settingsReady) return;
+
+    // Get the actual cheatsheetData from settings
+    var savedData = pluginApi?.pluginSettings?.cheatsheetData;
+
+    // Check if data exists and is a non-empty array
+    var hasData = Array.isArray(savedData) && savedData.length > 0;
+
+    if (!hasData) {
       isLoading = true;
       allLines = [];
 
@@ -155,7 +213,7 @@ Item {
   // Hyprland config reader
   Process {
     id: hyprlandProcess
-    command: ["sh", "-c", "cat ~/.config/hypr/keybind.conf"]
+    command: ["sh", "-c", "cat " + root.hyprlandConfigPath.replace("~", "$HOME")]
     running: false
 
     stdout: SplitParser {
@@ -169,7 +227,7 @@ Item {
         parseHyprlandConfig(fullContent);
         root.allLines = [];
       } else {
-        errorText.text = pluginApi?.tr("panel.error_read_file") || "Cannot read ~/.config/hypr/keybind.conf";
+        errorText.text = pluginApi?.tr("keybind-cheatsheet.panel.error-read-file") || ("Cannot read " + root.hyprlandConfigPath);
         errorView.visible = true;
       }
     }
@@ -178,7 +236,7 @@ Item {
   // Niri config reader
   Process {
     id: niriProcess
-    command: ["sh", "-c", "cat ~/.config/niri/config.kdl"]
+    command: ["sh", "-c", "cat " + root.niriConfigPath.replace("~", "$HOME")]
     running: false
 
     stdout: SplitParser {
@@ -192,10 +250,81 @@ Item {
         parseNiriConfig(fullContent);
         root.allLines = [];
       } else {
-        errorText.text = pluginApi?.tr("panel.error_read_file") || "Cannot read ~/.config/niri/config.kdl";
+        errorText.text = pluginApi?.tr("keybind-cheatsheet.panel.error-read-file") || ("Cannot read " + root.niriConfigPath);
         errorView.visible = true;
       }
     }
+  }
+
+  // ========== SHARED KEY FORMATTING ==========
+  function formatSpecialKey(key) {
+    var keyMap = {
+      // Audio keys (mixed case for Niri)
+      "XF86AudioRaiseVolume": "Vol +",
+      "XF86AudioLowerVolume": "Vol -",
+      "XF86AudioMute": "Mute",
+      "XF86AudioMicMute": "Mic Mute",
+      "XF86AudioPlay": "Play",
+      "XF86AudioPause": "Pause",
+      "XF86AudioNext": "Next",
+      "XF86AudioPrev": "Prev",
+      "XF86AudioStop": "Stop",
+      "XF86AudioMedia": "Media",
+      // Audio keys (uppercase for Hyprland)
+      "XF86AUDIORAISEVOLUME": "Vol +",
+      "XF86AUDIOLOWERVOLUME": "Vol -",
+      "XF86AUDIOMUTE": "Mute",
+      "XF86AUDIOMICMUTE": "Mic Mute",
+      "XF86AUDIOPLAY": "Play",
+      "XF86AUDIOPAUSE": "Pause",
+      "XF86AUDIONEXT": "Next",
+      "XF86AUDIOPREV": "Prev",
+      "XF86AUDIOSTOP": "Stop",
+      "XF86AUDIOMEDIA": "Media",
+      // Brightness keys (mixed case)
+      "XF86MonBrightnessUp": "Bright +",
+      "XF86MonBrightnessDown": "Bright -",
+      // Brightness keys (uppercase)
+      "XF86MONBRIGHTNESSUP": "Bright +",
+      "XF86MONBRIGHTNESSDOWN": "Bright -",
+      // Other common keys (mixed case)
+      "XF86Calculator": "Calc",
+      "XF86Mail": "Mail",
+      "XF86Search": "Search",
+      "XF86Explorer": "Files",
+      "XF86WWW": "Browser",
+      "XF86HomePage": "Home",
+      "XF86Favorites": "Favorites",
+      "XF86PowerOff": "Power",
+      "XF86Sleep": "Sleep",
+      "XF86Eject": "Eject",
+      // Other common keys (uppercase)
+      "XF86CALCULATOR": "Calc",
+      "XF86MAIL": "Mail",
+      "XF86SEARCH": "Search",
+      "XF86EXPLORER": "Files",
+      "XF86WWW": "Browser",
+      "XF86HOMEPAGE": "Home",
+      "XF86FAVORITES": "Favorites",
+      "XF86POWEROFF": "Power",
+      "XF86SLEEP": "Sleep",
+      "XF86EJECT": "Eject",
+      // Print screen
+      "Print": "PrtSc",
+      "PRINT": "PrtSc",
+      // Navigation
+      "Prior": "PgUp",
+      "Next": "PgDn",
+      "PRIOR": "PgUp",
+      "NEXT": "PgDn",
+      // Mouse (for Hyprland)
+      "MOUSE_DOWN": "Scroll Down",
+      "MOUSE_UP": "Scroll Up",
+      "MOUSE:272": "Left Click",
+      "MOUSE:273": "Right Click",
+      "MOUSE:274": "Middle Click"
+    };
+    return keyMap[key] || key;
   }
 
   // ========== HYPRLAND PARSER ==========
@@ -214,18 +343,24 @@ Item {
       else if (line.includes("bind") && line.includes('#"')) {
         if (currentCat) {
           var descMatch = line.match(/#"(.*?)"$/);
-          var desc = descMatch ? descMatch[1] : (pluginApi?.tr("panel.no_description") || "No description");
+          var desc = descMatch ? descMatch[1] : (pluginApi?.tr("keybind-cheatsheet.panel.no-description") || "No description");
           var parts = line.split(',');
           if (parts.length >= 2) {
+            // Extract modifier part (between = and first comma)
             var bindPart = parts[0].trim();
+            var modMatch = bindPart.match(/=\s*(.*)$/);
+            var modPart = modMatch ? modMatch[1].trim().toUpperCase() : "";
             var keyPart = parts[1].trim();
-            var mod = "";
-            if (bindPart.includes("$mod")) mod = "Super";
-            if (bindPart.includes("SHIFT")) mod += (mod ? " + Shift" : "Shift");
-            if (bindPart.includes("CTRL")) mod += (mod ? " + Ctrl" : "Ctrl");
-            if (bindPart.includes("ALT")) mod += (mod ? " + Alt" : "Alt");
-            var key = keyPart.toUpperCase();
-            var fullKey = mod + (mod && key ? " + " : "") + key;
+
+            // Build modifiers list (avoid duplicates)
+            var mods = [];
+            if (modPart.includes("$MOD") || modPart.includes("SUPER")) mods.push("Super");
+            if (modPart.includes("SHIFT")) mods.push("Shift");
+            if (modPart.includes("CTRL") || modPart.includes("CONTROL")) mods.push("Ctrl");
+            if (modPart.includes("ALT")) mods.push("Alt");
+
+            var key = formatSpecialKey(keyPart.toUpperCase());
+            var fullKey = mods.length > 0 ? mods.join(" + ") + " + " + key : key;
             currentCat.binds.push({ "keys": fullKey, "desc": desc });
           }
         }
@@ -236,7 +371,7 @@ Item {
       pluginApi.pluginSettings.cheatsheetData = cats;
       pluginApi.saveSettings();
     } else {
-      errorText.text = pluginApi?.tr("panel.no_categories") || "No keybindings found";
+      errorText.text = pluginApi?.tr("keybind-cheatsheet.panel.no-categories") || "No keybindings found";
       errorView.visible = true;
     }
   }
@@ -255,15 +390,24 @@ Item {
       "focus-workspace": "Workspace Navigation",
       "move-column": "Move Columns",
       "move-window": "Move Windows",
+      "move-window-to-workspace": "Move Windows",
       "consume-window": "Window Management",
       "expel-window": "Window Management",
       "close-window": "Window Management",
       "fullscreen-window": "Window Management",
+      "toggle-window-floating": "Window Management",
       "maximize-column": "Column Management",
+      "center-column": "Column Management",
       "set-column-width": "Column Width",
       "switch-preset-column-width": "Column Width",
       "reset-window-height": "Window Size",
+      "set-window-height": "Window Size",
+      "switch-preset-window-height": "Window Size",
       "screenshot": "Screenshots",
+      "screenshot-window": "Screenshots",
+      "screenshot-screen": "Screenshots",
+      "toggle-overview": "Navigation",
+      "show-hotkey-overlay": "System",
       "power-off-monitors": "Power",
       "quit": "System",
       "toggle-animation": "Animations"
@@ -302,11 +446,20 @@ Item {
 
       if (line.length === 0) continue;
 
-      var bindMatch = line.match(/^([A-Za-z0-9_+]+)\s*(?:[a-z\-]+=\S+\s*)*\{\s*([^}]+)\s*\}/);
+      // Parse keybind line - handle hotkey-overlay-title and other attributes
+      var bindMatch = line.match(/^([A-Za-z0-9_+]+)\s*(.*?)\{\s*([^}]+)\s*\}/);
 
       if (bindMatch) {
         var keyCombo = bindMatch[1];
-        var action = bindMatch[2].trim().replace(/;$/, '');
+        var attributes = bindMatch[2].trim();
+        var action = bindMatch[3].trim().replace(/;$/, '');
+
+        // Extract hotkey-overlay-title if present
+        var hotkeyTitle = null;
+        var titleMatch = attributes.match(/hotkey-overlay-title="([^"]+)"/);
+        if (titleMatch) {
+          hotkeyTitle = titleMatch[1];
+        }
 
         var formattedKeys = formatNiriKeyCombo(keyCombo);
         var category = currentCategory || getNiriCategory(action, actionCategories);
@@ -315,9 +468,12 @@ Item {
           categorizedBinds[category] = [];
         }
 
+        // Use hotkey-overlay-title if available, otherwise format action
+        var description = hotkeyTitle || formatNiriAction(action);
+
         categorizedBinds[category].push({
           "keys": formattedKeys,
-          "desc": formatNiriAction(action)
+          "desc": description
         });
       }
     }
@@ -326,7 +482,7 @@ Item {
       "Applications", "Window Management", "Column Navigation",
       "Window Focus", "Workspace Navigation", "Move Columns",
       "Move Windows", "Column Management", "Column Width",
-      "Window Size", "Screenshots", "Power", "System", "Animations"
+      "Window Size", "Screenshots", "Navigation", "Power", "System", "Animations"
     ];
 
     var cats = [];
@@ -347,13 +503,14 @@ Item {
       pluginApi.pluginSettings.cheatsheetData = cats;
       pluginApi.saveSettings();
     } else {
-      errorText.text = pluginApi?.tr("panel.no_categories") || "No keybindings found in binds block";
+      errorText.text = pluginApi?.tr("keybind-cheatsheet.panel.no-categories") || "No keybindings found in binds block";
       errorView.visible = true;
     }
   }
 
   function formatNiriKeyCombo(combo) {
-    return combo
+    // First handle modifiers
+    var formatted = combo
       .replace(/Mod\+/g, "Super + ")
       .replace(/Super\+/g, "Super + ")
       .replace(/Ctrl\+/g, "Ctrl + ")
@@ -362,14 +519,47 @@ Item {
       .replace(/Shift\+/g, "Shift + ")
       .replace(/Win\+/g, "Super + ")
       .replace(/\+\s*$/, "")
-      .replace(/\s+/g, " ");
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Then format special keys (XF86, Print, etc.)
+    var parts = formatted.split(" + ");
+    var formattedParts = parts.map(function(part) {
+      var trimmed = part.trim();
+      // Only format non-modifier keys
+      if (["Super", "Ctrl", "Alt", "Shift"].indexOf(trimmed) === -1) {
+        return formatSpecialKey(trimmed);
+      }
+      return trimmed;
+    });
+    return formattedParts.join(" + ");
   }
 
   function formatNiriAction(action) {
     if (action.startsWith("spawn")) {
-      var spawnMatch = action.match(/spawn\s+"([^"]+)"/);
-      if (spawnMatch) return "Run: " + spawnMatch[1];
+      // Extract all quoted arguments from spawn command
+      var args = [];
+      var regex = /"([^"]+)"/g;
+      var match;
+      while ((match = regex.exec(action)) !== null) {
+        args.push(match[1]);
+      }
+      if (args.length > 0) {
+        // Show command and key arguments, skip very long technical args
+        var displayArgs = args.map(function(arg) {
+          // Skip environment variable patterns and very long args
+          if (arg.startsWith("@") || arg.length > 30) return null;
+          return arg;
+        }).filter(function(arg) { return arg !== null; });
+        return "Run: " + displayArgs.join(" ");
+      }
       return action;
+    }
+    // Handle actions with parameters like "focus-workspace 1"
+    var parts = action.split(/\s+/);
+    if (parts.length > 1) {
+      var actionName = parts[0].replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+      return actionName + " " + parts.slice(1).join(" ");
     }
     return action.replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
   }
@@ -399,8 +589,14 @@ Item {
       radius: Style.radiusL
 
       RowLayout {
-        anchors.centerIn: parent
+        anchors.fill: parent
+        anchors.leftMargin: Style.marginM
+        anchors.rightMargin: Style.marginM
         spacing: Style.marginS
+
+        // Title section (centered)
+        Item { Layout.fillWidth: true }
+
         NIcon {
           icon: "keyboard"
           pointSize: Style.fontSizeM
@@ -418,13 +614,15 @@ Item {
           font.weight: Font.Bold
           color: Color.mPrimary
         }
+
+        Item { Layout.fillWidth: true }
       }
     }
 
     NText {
       id: loadingText
       anchors.centerIn: parent
-      text: pluginApi?.tr("panel.loading") || "Loading..."
+      text: pluginApi?.tr("keybind-cheatsheet.panel.loading") || "Loading..."
       visible: root.isLoading
       font.pointSize: Style.fontSizeL
       color: Color.mOnSurface
@@ -443,14 +641,14 @@ Item {
       }
       NText {
         id: errorText
-        text: pluginApi?.tr("panel.no_data") || "No data"
+        text: pluginApi?.tr("keybind-cheatsheet.panel.no-data") || "No data"
         font.pointSize: Style.fontSizeM
         color: Color.mOnSurface
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
       }
       NButton {
-        text: pluginApi?.tr("panel.refresh_button") || "Refresh"
+        text: pluginApi?.tr("keybind-cheatsheet.panel.refresh") || "Refresh"
         Layout.alignment: Qt.AlignHCenter
         onClicked: {
           pluginApi.pluginSettings.cheatsheetData = [];
@@ -463,60 +661,40 @@ Item {
       }
     }
 
-    RowLayout {
-      id: mainLayout
+    NScrollView {
+      id: scrollView
       visible: root.categories.length > 0 && !root.isLoading
       anchors.top: header.bottom
       anchors.bottom: parent.bottom
       anchors.left: parent.left
       anchors.right: parent.right
-      anchors.margins: Style.marginM
-      spacing: Style.marginS
+      anchors.margins: Style.marginS
+      clip: true
 
-      ColumnLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        Layout.alignment: Qt.AlignTop
-        spacing: 2
-        Repeater {
-          model: root.column0Items
-          Loader {
-            Layout.fillWidth: true
-            sourceComponent: modelData.type === "header" ? headerComponent :
-                           (modelData.type === "spacer" ? spacerComponent : bindComponent)
-            property var itemData: modelData
-          }
-        }
-      }
+      RowLayout {
+        id: mainLayout
+        width: scrollView.width
+        spacing: Style.marginS
 
-      ColumnLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        Layout.alignment: Qt.AlignTop
-        spacing: 2
         Repeater {
-          model: root.column1Items
-          Loader {
-            Layout.fillWidth: true
-            sourceComponent: modelData.type === "header" ? headerComponent :
-                           (modelData.type === "spacer" ? spacerComponent : bindComponent)
-            property var itemData: modelData
-          }
-        }
-      }
+          model: root.columnItems.length
 
-      ColumnLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        Layout.alignment: Qt.AlignTop
-        spacing: 2
-        Repeater {
-          model: root.column2Items
-          Loader {
+          ColumnLayout {
             Layout.fillWidth: true
-            sourceComponent: modelData.type === "header" ? headerComponent :
-                           (modelData.type === "spacer" ? spacerComponent : bindComponent)
-            property var itemData: modelData
+            Layout.alignment: Qt.AlignTop
+            spacing: 2
+
+            property var colItems: root.columnItems[index] || []
+
+            Repeater {
+              model: colItems
+              Loader {
+                Layout.fillWidth: true
+                sourceComponent: modelData.type === "header" ? headerComponent :
+                               (modelData.type === "spacer" ? spacerComponent : bindComponent)
+                property var itemData: modelData
+              }
+            }
           }
         }
       }
@@ -665,26 +843,40 @@ Item {
   }
 
   function distributeCategories() {
-    var weights = [];
-    var totalWeight = 0;
+    var numCols = root.columnCount;
+
+    // Calculate weights for each category
+    var catData = [];
     for (var i = 0; i < categories.length; i++) {
-      var weight = 1 + categories[i].binds.length + 1;
-      weights.push(weight);
-      totalWeight += weight;
+      var weight = 1 + categories[i].binds.length + 1; // header + binds + spacer
+      catData.push({ index: i, weight: weight });
     }
 
-    var columns = [[], [], []];
-    var columnWeights = [0, 0, 0];
+    // Sort by weight descending (largest categories first for better distribution)
+    catData.sort(function(a, b) { return b.weight - a.weight; });
 
-    for (var i = 0; i < categories.length; i++) {
+    var columns = [];
+    var columnWeights = [];
+    for (var c = 0; c < numCols; c++) {
+      columns.push([]);
+      columnWeights.push(0);
+    }
+
+    // Assign each category to the column with smallest current weight
+    for (var i = 0; i < catData.length; i++) {
       var minCol = 0;
-      for (var c = 1; c < 3; c++) {
+      for (var c = 1; c < numCols; c++) {
         if (columnWeights[c] < columnWeights[minCol]) {
           minCol = c;
         }
       }
-      columns[minCol].push(i);
-      columnWeights[minCol] += weights[i];
+      columns[minCol].push(catData[i].index);
+      columnWeights[minCol] += catData[i].weight;
+    }
+
+    // Sort categories within each column by original order for consistent display
+    for (var c = 0; c < numCols; c++) {
+      columns[c].sort(function(a, b) { return a - b; });
     }
 
     return columns;

@@ -46,31 +46,7 @@ NIconButton {
             return
         }
 
-        for (var slot = 1; slot <= 2; slot++) {
-            var panel = PanelService.getPanel("pluginPanel" + slot, screen)
-            if (panel && panel.currentPluginId === "github-feed") {
-                panel.toggle(root)
-                return
-            }
-        }
-
-        for (var slot = 1; slot <= 2; slot++) {
-            var panel = PanelService.getPanel("pluginPanel" + slot, screen)
-            if (panel && panel.currentPluginId === "") {
-                panel.currentPluginId = "github-feed"
-                panel.loadPluginPanel("github-feed")
-                panel.open(root)
-                return
-            }
-        }
-
-        var panel1 = PanelService.getPanel("pluginPanel1", screen)
-        if (panel1) {
-            panel1.unloadPluginPanel()
-            panel1.currentPluginId = "github-feed"
-            panel1.loadPluginPanel("github-feed")
-            panel1.open(root)
-        }
+        pluginApi.openPanel(root.screen, this)
     }
 
     onRightClicked: {

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import qs.Commons
+import "translatorUtils.js" as TranslatorUtils
 
 Item {
     id: root
@@ -10,30 +11,15 @@ Item {
     property string name: "Translator"
     property var translationCache: ({})
     property var pendingTranslations: ({})
-    property var languages: {
-        "fr": {name: "french", aliases: ["french", "français", "fr"]},
-        "en": {name: "english", aliases: ["english", "anglais", "en"]},
-        "es": {name: "spanish", aliases: ["spanish", "espagnol", "es"]},
-        "de": {name: "german", aliases: ["german", "allemand", "de"]},
-        "it": {name: "italian", aliases: ["italian", "italien", "it"]},
-        "pt": {name: "portuguese", aliases: ["portuguese", "portugais", "pt"]}
-    }
-
-    function getLanguageCode(input) {
-        var lower = input.toLowerCase();
-        for (var code in languages) {
-            if (languages[code].aliases.indexOf(lower) !== -1) return code;
-        }
-        return input;
-    }
 
     function getDefaultLanguages() {
         var result = [];
-        for (var code in languages) {
-            var lang = languages[code];
-            var name = pluginApi?.tr("languageNames." + lang.name) || lang.name.charAt(0).toUpperCase() + lang.name.slice(1);
-            var desc = pluginApi?.tr("languages." + lang.name) || "Translate to " + lang.name;
-            result.push({name: name, desc: desc, code: code});
+        var translatePrefix = pluginApi?.tr("translatePrefix") || "Translate to ";
+        for (var code in TranslatorUtils.languages) {
+            var lang = TranslatorUtils.languages[code];
+            var languageName = pluginApi?.tr("languageNames." + lang.name) || lang.name.charAt(0).toUpperCase() + lang.name.slice(1);
+            var desc = translatePrefix + languageName;
+            result.push({name: languageName, desc: desc, code: code});
         }
         return result;
     }
@@ -68,7 +54,7 @@ Item {
             });
         }
 
-        var targetLang = getLanguageCode(parts[1] || "fr") || "fr";
+        var targetLang = TranslatorUtils.getLanguageCode(parts[1] || "fr") || "fr";
         var textToTranslate = parts.slice(2).join(" ");
 
         if (!textToTranslate) {
